@@ -2,15 +2,27 @@
 
 Graph Controlled string Rewriting SIMulator. It can be used to simulate the derivation of most common types of regulated rewriting. It was primary developed and heavily used for the simulation of insertion-deletion systems.
 
+## Installation
+
+You need `Perl` to run the simulator. It is preinstalled on most Linux distributions as well as on MacOS. To use it in Windows, please install either the [![binary](https://www.perl.org/get.html)] package, or [![MSYS2](https://www.msys2.org/)]. It is also possible to run `Perl` via a Docker image.
+
+Next, clone this repository and run the gcrsim.pl script.
+
 ## Usage
 
 ```
 perl gcrsim.pl input_file [steps]
 ```
 
-This will run the simulator on the input file for the specified number of steps. If the number of steps is not specified, the interactive mode is started.
+This will run the simulator on the input file for the specified number of steps. If the number of steps is not given, the interactive mode is started.
 
 The result of the simulation is sent to the standard output.
+
+You can choose to run the script via Docker:
+
+```
+docker run -it --rm --name gcrsim -v ".":/usr/src/myapp -w /usr/src/myapp perl:stable-slim perl gcrsim.pl
+```
 
 ## Input file syntax
 
