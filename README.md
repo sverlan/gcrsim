@@ -4,7 +4,7 @@ Graph Controlled string Rewriting SIMulator. It can be used to simulate the deri
 
 ## Installation
 
-You need `Perl` to run the simulator. It is preinstalled on most Linux distributions as well as on MacOS. To use it in Windows, please install either the [![binary](https://www.perl.org/get.html)] package, or [![MSYS2](https://www.msys2.org/)]. It is also possible to run `Perl` via a Docker image.
+You need `Perl` to run the simulator. It is preinstalled on most Linux distributions as well as on MacOS. To use it in Windows, please install either the [binary](https://www.perl.org/get.html) package, or [MSYS2](https://www.msys2.org/). It is also possible to run `Perl` via a Docker image.
 
 Next, clone this repository and run the gcrsim.pl script.
 
