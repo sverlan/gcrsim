@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-my $version = 1.2;
+my $version = 1.10;
 my $version_date = "17/09/2024";
 
 my @current = (); 
