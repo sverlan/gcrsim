@@ -33,7 +33,7 @@ def _build_parser() -> "argparse.ArgumentParser":
         "'gcrsim-retention FILE ...' shows, searches and traces a file written with --retain-file. "
         "Use --help with them for their options.",
     )
-    p.add_argument("input_file", nargs="?", help="model file (asked for interactively if omitted)")
+    p.add_argument("input_file", nargs="?", metavar="MODEL", help="the model file (without it this help is shown)")
     p.add_argument("steps", nargs="?", help="number of steps to run (or the setting 'steps' of the configuration)")
     p.add_argument("-i", "--interactive", action="store_true", help="step by step, waiting for a command after each step (formats text and perl only)")
     p.add_argument("--format", choices=("text", "perl", "csv", "jsonl"), default="text",
@@ -221,13 +221,6 @@ def _progress_line(sim: Simulator, started: float) -> str:
 def run_cli(args: "argparse.Namespace", out: Output, stdin: Any) -> int:
     interactive = args.interactive
     input_file = args.input_file
-    if input_file is None:
-        out.write("Enter input file name: ")
-        out.flush()
-        line = stdin.readline()
-        if not line:
-            raise GcrsimError("no input file given")
-        input_file = line.rstrip("\r\n")
     run_steps = 0
     if args.steps is not None:
         if interactive:
@@ -247,7 +240,7 @@ def run_cli(args: "argparse.Namespace", out: Output, stdin: Any) -> int:
     except ValueError as exc:
         raise GcrsimError(str(exc))
     if not os.path.exists(input_file):
-        raise GcrsimError("Bad input filename: %s !" % input_file)
+        raise GcrsimError("cannot read the model %s: no such file" % input_file)
 
     model = parse_model_file(input_file)
     trace_target = model.lexicon.encode(args.trace) if args.trace is not None else None
@@ -435,7 +428,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     """Command line entry point; returns the process exit status."""
     if argv is None:
         argv = sys.argv[1:]
-    args = _build_parser().parse_args(argv)
+    parser = _build_parser()
+    args = parser.parse_args(argv)
+    if args.input_file is None:
+        parser.print_help()   # started without a model: show how to use the program
+        return 2
     for stream in (sys.stderr,):
         try:
             stream.reconfigure(errors="backslashreplace")

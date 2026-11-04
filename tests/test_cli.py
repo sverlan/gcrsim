@@ -133,11 +133,21 @@ def test_interactive_mode(tmp_path):
     assert r.returncode == 0 and "STEP 1" not in r.stdout
 
 
-def test_input_file_asked_for_when_missing(tmp_path):
-    write(tmp_path, "m.txt", ANBN)
-    r = run_py(["-i"], tmp_path, stdin="m.txt\nq\n")
-    assert r.stdout.startswith("Enter input file name: ")
-    assert "The initial configuration" in r.stdout
+def test_without_a_model_the_help_is_shown_and_nothing_is_asked(tmp_path):
+    for args in ([], ["-i"], ["--format", "csv"]):
+        r = run_py(args, tmp_path, stdin="m.txt\nq\n")
+        assert r.returncode == 2
+        assert r.stdout.startswith("usage: gcrsim") and "MODEL" in r.stdout and "--max-step-accepted" in r.stdout
+        assert "Enter input file name" not in r.stdout
+
+
+def test_the_other_programs_show_their_help_without_arguments(capsys):
+    from gcrsim.convert import main_convert
+    from gcrsim.retention import main as retention_main
+    for main, name in ((main_convert, "gcrsim-convert"), (retention_main, "gcrsim-retention")):
+        assert main([]) == 2
+        out = capsys.readouterr().out
+        assert out.startswith("usage: " + name) and "show this help message" in out
 
 
 # -- errors -------------------------------------------------------------------------------------------
@@ -145,7 +155,7 @@ def test_input_file_asked_for_when_missing(tmp_path):
 
 def test_bad_input_file_and_bad_steps(tmp_path):
     r = run_py(["nope.txt", "1"], tmp_path)
-    assert r.returncode == 2 and "Bad input filename: nope.txt !" in r.stderr
+    assert r.returncode == 2 and "cannot read the model nope.txt: no such file" in r.stderr
     write(tmp_path, "m.txt", ANBN)
     assert "Bad number of steps: -1" in run_py(["m.txt", "-1"], tmp_path).stderr
     assert "Bad number of steps: x" in run_py(["m.txt", "x"], tmp_path).stderr

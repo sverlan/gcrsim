@@ -27,7 +27,8 @@ Exit statuses:
 * **Step by step.** `-i` (`--interactive`) lists the initial strings and then waits for a command after each step: Enter for the next
   step, and commands to look at the strings, find one, trace it, mark or remove a string, or quit; see
   [interactive.md](interactive.md). It cannot be combined with `STEPS` or with the formats `csv` and `jsonl`.
-* **The model file.** If `MODEL` is omitted, the program asks for the name.
+* **The model file.** Without `MODEL` the program shows its help and exits with status 2; `gcrsim-convert` and `gcrsim-retention` do the same
+  without their file argument.
 * **When everything is empty.** A run stops early, with a message on the standard error, once all components are empty, because nothing
   can happen any more. `--run-empty` keeps running anyway.
 

@@ -279,7 +279,7 @@ def resolve_config(
 
 def _migration_error(name: str) -> None:
     raise ConfigError(
-        "%s is a Perl configuration, which gcrsim-python never executes. Translate it to a "
+        "%s is a Perl configuration, which gcrsim never executes. Translate it to a "
         "declarative .toml configuration (see README.md, 'Configuration') and select it with "
         "--config translated.toml" % name
     )

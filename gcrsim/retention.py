@@ -183,13 +183,16 @@ def main(argv: Optional[List[str]] = None) -> int:
     import argparse
 
     p = argparse.ArgumentParser(prog="gcrsim-retention", description="Show a retention file written with --retain-file.")
-    p.add_argument("file")
+    p.add_argument("file", nargs="?", metavar="FILE", help="the retention file (without it this help is shown)")
     p.add_argument("--step", type=int, help="print the strings of this step (default: a summary of all steps)")
     p.add_argument("--component", type=int, help="only this component (1-based; default 1 for --trace)")
     p.add_argument("--find", metavar="STRING", help="list the steps and components that hold this string")
     p.add_argument("--trace", metavar="STRING", help="print the derivation of this string (needs --model)")
     p.add_argument("--model", metavar="MODEL", help="the model file of the run that wrote FILE (for --trace)")
     args = p.parse_args(argv)
+    if args.file is None:
+        p.print_help()
+        return 2
     if args.find is not None:
         return find(args.file, args.find, args.component)
     if args.trace is not None:

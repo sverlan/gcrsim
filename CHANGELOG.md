@@ -3,6 +3,19 @@
 All notable changes of each released version are listed here, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the versions follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+## [0.1.1] - 2026-11-04
+
+### Changed
+
+* `gcrsim`, `gcrsim-convert` and `gcrsim-retention` started without their file argument show their help (exit status 2); `gcrsim` no
+  longer asks for the name of the model.
+* A missing model file is reported as `cannot read the model FILE: no such file`, in place of `Bad input filename: FILE !`.
+* The message about a Perl configuration names the program `gcrsim`.
+* The first model of the README is saved and run from its own file; the examples folder is not part of the installed package.
+* The release workflow no longer sets up a cache in the upload job, which has no checkout (this removes a warning).
+
 ## [0.1.0] - 2026-11-04
 
 First release of the Python version of gcrsim. It continues the [Perl simulator](https://github.com/sverlan/gcrsim-perl) with a

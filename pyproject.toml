@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "gcrsim"
-version = "0.1.0"
+version = "0.1.1"
 description = "Graph-controlled string rewriting simulator (insertion-deletion systems and other regulated rewriting)"
 readme = "README.md"
 requires-python = ">=3.11"

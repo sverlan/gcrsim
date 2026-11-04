@@ -74,8 +74,8 @@ B -> b, 5
 C -> c, 6
 ```
 
-The model is the file [`examples/cookbook/08_matrix_direct.txt`](examples/cookbook/08_matrix_direct.txt); `gcrsim examples/cookbook/08_matrix_direct.txt 12` prints, at every step, the strings of each component; `abc`, `aabbcc`, ... appear
-in component 6.
+Save the model as `matrix.txt` and run `gcrsim matrix.txt 12`; it prints, at every step, the strings of each component; `abc`, `aabbcc`, ... appear
+in component 6. The same model is in the repository as [`examples/cookbook/08_matrix_direct.txt`](examples/cookbook/08_matrix_direct.txt).
 
 ## Documentation
 

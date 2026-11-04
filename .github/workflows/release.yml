@@ -41,4 +41,5 @@ jobs:
       - uses: astral-sh/setup-uv@v7
         with:
           version: "0.10.12"
+          enable-cache: false   # this job has no checkout, so there is nothing to key a cache on
       - run: uv publish --trusted-publishing always dist/*

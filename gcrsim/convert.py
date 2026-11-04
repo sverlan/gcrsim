@@ -557,10 +557,13 @@ def main_convert(argv: Optional[Sequence[str]] = None) -> int:
     if argv is None:
         argv = sys.argv[1:]
     p = argparse.ArgumentParser(prog="gcrsim-convert", description="Convert a Perl-era model (and its .cfg) to the current notation.")
-    p.add_argument("model", help="the old model file")
+    p.add_argument("model", nargs="?", metavar="OLD_MODEL", help="the old model file (without it this help is shown)")
     p.add_argument("-o", "--output", metavar="NEW_MODEL", help="write the new model here (default: standard output)")
     p.add_argument("--source-encoding", default="latin-1", help="encoding of the Perl files (default latin-1, as Perl read them)")
     args = p.parse_args(list(argv))
+    if args.model is None:
+        p.print_help()
+        return 2
     try:
         with open(args.model, "rb") as fh:
             old = fh.read().decode(args.source_encoding)
