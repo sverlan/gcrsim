@@ -7,7 +7,7 @@ All notable changes of each released version are listed here, newest first. The 
 
 ### Changed
 
-* The continuous integration keeps one `uv` cache for each Python version (no more warning about a cache that is already being saved).
+* The continuous integration runs the tests in one job (Ubuntu, Python 3.11, the oldest supported) in place of a matrix of four.
 * The tests of the continuous integration run in parallel (`pytest-xdist`, now in the development dependencies).
 * The message about a Perl configuration points to `docs/migration.md`.
 * The test workflow runs on pushes to branches and on pull requests, not on a tag push: the release workflow runs the tests itself.

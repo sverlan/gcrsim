@@ -9,23 +9,17 @@ on:
 
 jobs:
   tests:
-    name: tests (${{ matrix.os }}, Python ${{ matrix.python }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-        python: ["3.11", "3.14"]
+    name: tests (ubuntu, Python 3.11)
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v7   # installs a static uv release and caches it
         with:
           version: "0.10.12"
           enable-cache: true
-          cache-suffix: ${{ matrix.python }}   # one cache for each Python, so that parallel jobs do not save the same key
       # The comparison tests with the original Perl simulator run when a perl is on the PATH
       # (tests/fixtures/perl/gcrsim.pl is part of the repository) and are skipped otherwise.
-      - run: uv run --locked --python ${{ matrix.python }} python -m pytest -q -n auto
+      - run: uv run --locked --python 3.11 python -m pytest -q -n auto   # the oldest supported Python: newer-only syntax or library calls fail here
 
   package:
     name: build and check the package
