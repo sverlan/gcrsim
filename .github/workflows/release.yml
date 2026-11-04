@@ -20,7 +20,7 @@ jobs:
         run: |
           version=$(python3 -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
           test "v$version" = "$GITHUB_REF_NAME" || { echo "tag $GITHUB_REF_NAME does not match version $version"; exit 1; }
-      - run: uv run --locked python -m pytest -q
+      - run: uv run --locked python -m pytest -q -n auto
       - run: uv build --out-dir dist
       - uses: actions/upload-artifact@v6
         with:

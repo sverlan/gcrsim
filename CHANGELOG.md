@@ -5,6 +5,13 @@ All notable changes of each released version are listed here, newest first. The 
 
 ## [Unreleased]
 
+### Changed
+
+* The continuous integration keeps one `uv` cache for each Python version (no more warning about a cache that is already being saved).
+* The tests of the continuous integration run in parallel (`pytest-xdist`, now in the development dependencies).
+* The message about a Perl configuration points to `docs/migration.md`.
+* The test workflow runs on pushes to branches and on pull requests, not on a tag push: the release workflow runs the tests itself.
+
 ## [0.1.1] - 2026-11-04
 
 ### Changed

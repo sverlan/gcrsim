@@ -1,9 +1,10 @@
 name: tests
 
-# The tests run on every push and on every pull request. Publishing to PyPI is a separate workflow (release.yml)
-# that runs only on a version tag.
+# The tests run on every push to a branch and on every pull request. A tag push does not start them: the release workflow
+# (release.yml), which runs only on a version tag, runs the tests itself before it publishes to PyPI.
 on:
   push:
+    branches: ["**"]
   pull_request:
 
 jobs:
@@ -21,9 +22,10 @@ jobs:
         with:
           version: "0.10.12"
           enable-cache: true
+          cache-suffix: ${{ matrix.python }}   # one cache for each Python, so that parallel jobs do not save the same key
       # The comparison tests with the original Perl simulator run when a perl is on the PATH
       # (tests/fixtures/perl/gcrsim.pl is part of the repository) and are skipped otherwise.
-      - run: uv run --locked --python ${{ matrix.python }} python -m pytest -q
+      - run: uv run --locked --python ${{ matrix.python }} python -m pytest -q -n auto
 
   package:
     name: build and check the package
@@ -44,4 +46,4 @@ jobs:
       - name: the source archive is complete (its tests pass)
         run: |
           mkdir sdist-check && tar -xzf dist/*.tar.gz -C sdist-check
-          cd sdist-check/gcrsim-* && uv run --python 3.14 --with pytest python -m pytest -q
+          cd sdist-check/gcrsim-* && uv run --python 3.14 --with pytest --with pytest-xdist python -m pytest -q -n auto
