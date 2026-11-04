@@ -1,0 +1,16 @@
+# Semi-conditional grammar: rules (A -> x, permitting word, forbidding word).
+#   (S -> aSb, lambda, bbb)   (S -> lambda, lambda, lambda)       L = { a^n b^n : 0 <= n <= 3 }
+# After three rounds the word contains bbb, so the first rule is blocked.
+
+# the words of the language: a string of terminal symbols (lower-case letters) that reaches component 1 is marked
+[model.marks]
+terminal = '\A[a-z]*\Z'
+
+[axioms]
+1 = ["S"]
+
+[rules]
+# (S -> aSb, no permitting word, forbidding word bbb): applies only while bbb does not occur
+S -> a S b, 1; forbid: bbb
+# (S -> lambda, no conditions)
+S ->

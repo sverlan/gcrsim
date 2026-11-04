@@ -1,0 +1,72 @@
+# Matrix insertion-deletion system, size 110200, variant b.
+# Rules written as insertions / deletions / substitutions; the line before each translated rule starts with '# old:'
+# and shows the original rule. Run:  gcrsim examples/real/mat_insdel/mat_insdel_110200b.txt 5
+
+[symbols]
+# the symbols with an index (p1, S2, R1, ...) are single symbols
+alphabet = "A C C1 C2 R1 R2 X Y Z b p1 p2 p3"
+
+[model]
+# Translation of the Perl filter_next of the original configuration: rejections are filters,
+# the printed '!!Terminal!!' lines are the mark 'terminal'.
+history = true
+reject_strings = ""
+reject_max_len = 100
+
+[run]
+print_hide = ""
+print_max_len = 100
+
+[model.components.0.filters]
+forbid = ['R2\Z', '(R1.*){3}', '(R2.*){3}', '(C1.*){3}', '(C2.*){3}', 'p2Z', 'p3Z']
+
+[model.components.1.marks]
+terminal = { pattern = '\A[XYZCb]*\Z', message = "!!Terminal!!:{string} ({component})" }
+
+[axioms]
+
+# A->bC
+
+1 = ["XAYZ"]
+
+[rules]
+
+# old: A->,2
+del(,A,),2
+# old: 2,Y->Yp1
+2,ins(Y,p1,)
+
+# old: X->XC1,3
+ins(X,C1,),3
+# old: 3,Z->ZR1
+3,ins(Z,R1,)
+
+# old: Y->Yp2,4
+ins(Y,p2,),4
+# old: 4,Z->ZR2
+4,ins(Z,R2,)
+
+# old: R2R1->,5
+del(,R2R1,),5
+# old: 5,Y->Yp3
+5,ins(Y,p3,)
+
+# old: X->Xb,6
+ins(X,b,),6
+# old: 6,p2->
+6,del(,p2,)
+
+# old: X->,7
+del(,X,),7
+# old: 7,C1->C1C2
+7,ins(C1,C2,)
+
+# old: p3p1->,8
+del(,p3p1,),8
+# old: 8,C2->C2X
+8,ins(C2,X,)
+
+# old: C1C2->,9
+del(,C1C2,),9
+# old: 9,X->XC
+9,ins(X,C,)

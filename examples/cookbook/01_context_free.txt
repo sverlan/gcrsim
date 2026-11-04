@@ -1,0 +1,14 @@
+# Context-free grammar G = ({S}, {a,b}, S, P) with P = { S -> aSb, S -> lambda }.   L(G) = { a^n b^n : n >= 0 }
+
+# the words of the language: a string of terminal symbols (lower-case letters) that reaches component 1 is marked
+[model.marks]
+terminal = '\A[a-z]*\Z'
+
+[axioms]
+1 = ["S"]
+
+[rules]
+# S -> aSb
+S -> a S b
+# S -> lambda: erase S (the right-hand side is empty)
+S ->

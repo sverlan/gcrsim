@@ -1,0 +1,33 @@
+# Matrix grammar G = ({S,A,B,C}, {a,b,c}, S, M) with the matrices
+#   m1 = (S -> ABC)   m2 = (A -> aA, B -> bB, C -> cC)   m3 = (A -> a, B -> b, C -> c)
+# L(G) = { a^n b^n c^n : n >= 1 }.
+# A matrix is a chain of components: each rule hands the word to the next component and the last rule of the
+# matrix returns to component 1, where the next matrix is chosen by send().
+
+# the words of the language: a string of terminal symbols (lower-case letters) that reaches component 8 is marked
+[model.components.8.marks]
+terminal = '\A[a-z]*\Z'
+
+[axioms]
+1 = ["S"]
+
+[rules.1]
+# matrix m1 (one rule): S -> ABC
+S -> A B C, 1
+# choose the next matrix: m2 starts in component 2, m3 in component 5
+send(), 2
+send(), 5
+# matrix m2 = (A -> aA, B -> bB, C -> cC): one component per rule, the last one returns to component 1
+[rules.2]
+A -> a A, 3
+[rules.3]
+B -> b B, 4
+[rules.4]
+C -> c C, 1
+# matrix m3 = (A -> a, B -> b, C -> c): the last rule ends in component 8
+[rules.5]
+A -> a, 6
+[rules.6]
+B -> b, 7
+[rules.7]
+C -> c, 8

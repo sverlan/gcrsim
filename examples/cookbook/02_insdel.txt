@@ -1,0 +1,14 @@
+# Insertion-deletion system (V, T, A, I, D) with V = T = {a,b}, A = { ab },
+# I = { (a, ab, b) } (insert ab between a and b), D = {}.   L = { a^n b^n : n >= 1 }
+# ins(u,y,v): insert y where u ends right before it and v starts right after it.
+
+# the words of the language: a string of terminal symbols (lower-case letters) that reaches component 1 is marked
+[model.marks]
+terminal = '\A[a-z]*\Z'
+
+[axioms]
+1 = ["ab"]
+
+[rules]
+# insert "ab" between an a and a b
+ins(a, ab, b)

@@ -1,0 +1,48 @@
+# Matrix insertion-deletion system, size 200110, variant a.
+# Rules written as insertions / deletions / substitutions; the line before each translated rule starts with '# old:'
+# and shows the original rule. Run:  gcrsim examples/real/mat_insdel/mat_insdel_200110a.txt 5
+
+[symbols]
+# the symbols with an index (p1, S2, R1, ...) are single symbols
+alphabet = "A C K S1 S2 S3 S4 S5 X b"
+
+[axioms]
+
+1 = ["AX"]
+
+[rules]
+
+# old: ->S1S2,2
+ins(,S1S2,),2
+# old: 2,S2A->S2
+2,del(S2,A,)
+
+# old: ->C,3
+ins(,C,),3
+# old: 3,CS1->C
+3,del(C,S1,)
+
+# old: ->S3S4,4
+ins(,S3S4,),4
+# old: 4,S4S2->S4
+4,del(S4,S2,)
+
+# old: ->S5b,5
+ins(,S5b,),5
+# old: 5,bS4->b
+5,del(b,S4,)
+
+# old: X->,6
+del(,X,),6
+# old: 6,->K
+6,ins(,K,)
+
+# old: KS3->K,7
+del(K,S3,),7
+# old: 7,KS5->K
+7,del(K,S5,)
+
+# old: K->,8
+del(,K,),8
+# old: 8,->X
+8,ins(,X,)

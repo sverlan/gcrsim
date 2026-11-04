@@ -1,0 +1,33 @@
+# Unrestricted (type 0) grammar with erasing rules: G = ({S,A,B,C,D,E}, {a}, S, P) with
+#   S -> ACaB    Ca -> aaC    CB -> DB    CB -> E    aD -> Da    AD -> AC    aE -> Ea    AE -> lambda
+# L(G) = { a^(2^n) : n >= 1 }.   C doubles the a's it passes on its way to B; D carries the marker back to A for the next
+# round, and E (instead of D) ends the derivation.
+
+[model]
+reject_max_len = 40
+
+[run]
+# Number of steps and the longest word kept: with these settings the run prints a^2 (step 6), a^4 (14), a^8 (28), a^16 (54).
+steps = 54
+
+# the words of the language: a string of terminal symbols (lower-case letters) that reaches component 1 is marked
+[model.marks]
+terminal = '\A[a-z]*\Z'
+
+[axioms]
+1 = ["S"]
+
+[rules]
+# start: S -> ACaB (A and B are the left and right end markers, C a doubling marker)
+S -> A C a B
+# C doubles every a it passes on its way to B
+C a -> a a C
+# at B, C either turns into D (one more round) or into E (the last round)
+C B -> D B
+C B -> E
+# D carries the marker back to A, and A D -> A C starts the next round
+a D -> D a
+A D -> A C
+# E goes back to A, and A E is erased: the derivation ends
+a E -> E a
+A E ->

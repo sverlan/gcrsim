@@ -1,0 +1,22 @@
+# Counter machine with two counters that moves counter 1 into counter 2:
+#   q0: if c1 > 0 then c1 := c1 - 1, go to q1, else halt        q1: c2 := c2 + 1, go to q0
+# The word is a^c1 | b^c2.  A counter is a run of one symbol, the states are the components:
+#   decrement: del({start},a,)     increment: ins(,b,{end})     zero test: send() with forbid:a
+# Input aaa|bb halts in component 3 with |bbbbb.
+
+# the machine halts in component 3 with the word |b...b: that word is marked
+[model.components.3.marks]
+halt = '\A\|b*\Z'
+
+[axioms]
+# counter 1 holds three a, counter 2 holds two b, | separates the counters
+1 = ["aaa|bb"]
+
+[rules.1]
+# state q0, counter 1 > 0: decrement it (delete the a at the left end) and go to q1
+del({start}, a, ), 2
+# state q0, counter 1 = 0 (no a in the word): halt in component 3
+send(), 3; forbid: a
+[rules.2]
+# state q1: increment counter 2 (insert a b at the right end) and go back to q0
+ins( , b, {end}), 1

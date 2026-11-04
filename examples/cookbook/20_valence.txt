@@ -1,0 +1,30 @@
+# A valence grammar G = ({S}, {a, b}, S, P) over the integers: every rule has a valence, and a derivation is successful when the
+# sum of the valences of the rules it used is 0. The rules and their valences:
+#   S -> aS   valence +1        S -> bS   valence -1        S -> lambda   valence 0
+# L(G) = { w in {a, b}* : the number of a equals the number of b }.
+# The sum is kept in the word, after a separator |, as a counter in unary: P stands for +1 and M for -1, and only one of the two
+# kinds is present at a time. A rule with a valence leads to a component that updates the counter at the right end: for +1 it deletes
+# an M if there is one, and otherwise inserts a P (and the other way round for -1). A word is in the language when no counter symbol is
+# left: that word is marked.
+
+[model.marks]
+terminal = '\A[ab]*\|\Z'
+
+[axioms]
+1 = ["S|"]
+
+[rules.1]
+# S -> aS, valence +1: the counter is updated in component 2
+S -> a S, 2
+# S -> bS, valence -1: the counter is updated in component 3
+S -> b S, 3
+# S -> lambda, valence 0
+S -> , 1
+# add +1: cancel an M, or else add a P
+[rules.2]
+del( , M, {end}), 1
+ins( , P, {end}), 1; forbid: M
+# add -1: cancel a P, or else add an M
+[rules.3]
+del( , P, {end}), 1
+ins( , M, {end}), 1; forbid: P

@@ -1,0 +1,22 @@
+# A Post tag system T = ({a, b, c}, 2, P) with the productions P: a -> bc, b -> a, c -> aaa. One step reads the first symbol x, deletes
+# the first two symbols and appends P(x) at the right end. As a Post normal system the three productions are  a z -> z bc,  b z -> z a
+# and  c z -> z aaa  (z is a variable, the rest of the word).
+# The system halts when the word has fewer than two symbols. From aaa it goes through 25 words (a Collatz-like sequence) and halts
+# on a.
+# Two ways to write it, both below: with regular-expression rules, where the variable z is a group, and with left-right
+# insertion-deletion rules only, a deletion at the left end and an insertion at the right end.
+
+# the system halts on a word with fewer than two symbols: that word is marked
+[model.marks]
+halt = '\A[abc]?\Z'
+
+[axioms]
+1 = ["aaa"]
+
+[rules]
+# a z -> z bc : delete the first two symbols (a and any symbol), keep the rest z, append bc
+re(\Aa.(.*)\Z) -> \1bc
+# b z -> z a
+re(\Ab.(.*)\Z) -> \1a
+# c z -> z aaa
+re(\Ac.(.*)\Z) -> \1aaa

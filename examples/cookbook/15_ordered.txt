@@ -1,0 +1,16 @@
+# Ordered grammar: rules r1: A -> a and r2: B -> b with r1 > r2 (r2 applies only when r1 is not applicable).
+# On the word AB only r1 applies; once no A is left, r2 applies.   L = { ab }
+# Translation: the lower rule forbids the left-hand side of the higher one.
+
+# the words of the language: a string of terminal symbols (lower-case letters) that reaches component 1 is marked
+[model.marks]
+terminal = '\A[a-z]*\Z'
+
+[axioms]
+1 = ["AB"]
+
+[rules]
+# r1 (the higher rule): A -> a
+A -> a
+# r2 (the lower rule): B -> b, allowed only when r1 is not applicable, that is when no A occurs
+B -> b, 1; forbid: A

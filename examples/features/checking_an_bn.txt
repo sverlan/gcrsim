@@ -1,0 +1,17 @@
+# Checking a grammar: the intended language is { a^n b^n : 0 <= n <= 4 }; this grammar has a mistake
+# (the extra rule S -> bSa).  Every terminal string that is not expected gets the mark "unexpected";
+# see the [model.components.1.marks] table below and docs/marks-and-derivations.md.
+
+[model.components.1.marks]
+unexpected = { pattern = '\A[ab]*\Z', expected = ["", "ab", "aabb", "aaabbb", "aaaabbbb"] }
+
+[axioms]
+1 = ["S"]
+
+[rules]
+# the intended rule: S -> aSb
+S -> a S b
+# the mistake: S -> bSa
+S -> b S a
+# S -> lambda: erase S
+S ->

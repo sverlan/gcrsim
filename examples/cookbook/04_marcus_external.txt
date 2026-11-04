@@ -1,0 +1,18 @@
+# External contextual grammar (Marcus) G = ({a,b}, { ab }, { (a, b) }): the context (a, b) is added
+# at the two ends of the whole word, w -> a w b.   L = { a^n b^n : n >= 1 }
+# Two components: component 1 adds the left part, component 2 the right part. The language is read in component 1 (a word in
+# component 2 has only its left part added).
+
+# the words of the language: a string of terminal symbols (lower-case letters) that reaches component 1 is marked
+[model.marks]
+terminal = '\A[a-z]*\Z'
+
+[axioms]
+1 = ["ab"]
+
+[rules.1]
+# add an a at the left end of the word, then go to component 2
+ins({start}, a, ), 2
+[rules.2]
+# add a b at the right end of the word, then go back to component 1
+ins( , b, {end}), 1

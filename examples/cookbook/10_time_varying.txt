@@ -1,0 +1,19 @@
+# Time-varying grammar with period 2:  V1 = { S -> aT },  V2 = { T -> bS, T -> b }.   L = { (ab)^n : n >= 1 }
+# At steps 1, 3, 5 ... the rules of V1 apply, at steps 2, 4 ... those of V2: one component per rule set,
+# each pointing to the next.
+
+# the words of the language: a string of terminal symbols (lower-case letters) that reaches component 3 is marked
+[model.components.3.marks]
+terminal = '\A[a-z]*\Z'
+
+[axioms]
+1 = ["S"]
+
+[rules.1]
+# rule set V1 (steps 1, 3, 5 ...): S -> aT, then V2 applies
+S -> a T, 2
+[rules.2]
+# rule set V2 (steps 2, 4 ...): T -> bS goes back to V1 ...
+T -> b S, 1
+# ... or T -> b finishes the word in component 3
+T -> b, 3

@@ -1,0 +1,121 @@
+
+#  Used symbols: P as \bar{B}_1, O as B_1, Q as \bar{D}_1, R as D_1, V as bar{U}, K1 as K and K2 as L
+#  # as bar{$}
+#
+
+# List symbols:
+# [JUMP] = X,Y,Z,S,U,A,B,C,D,K,L
+# [JUMP_BAR] = P,Q,V
+# [ALL] = [JUMP],[JUMP_BAR],$[JUMP],#[JUMP_BAR]
+
+[axioms]
+
+#[cE]
+
+#[cACAC$SB$Z$D$Y$B$X$E]
+
+1 = ["cACAC$SB$ZD$Y$B$X$E"]
+
+#[cACA$SB$ZD$YB$X$E]
+
+#[cA$C$L$D$$QAD$$QKD$$QBD$$QUD$$QUD$U#V$R#P$U$D$$QSD$$QUD$$QBD$$Q$YU$D$XE]
+
+#[cACAB$U$U#P$S$U$B$YB$X$E]
+
+[rules]
+
+# S-> A S' BB transcribed as:
+# E->AX X->YB Y->SB S->
+
+# rules 1,2,3
+
+#E->AX
+
+re(([ACc])(E))->\1ACAX\2
+re((X)(E))->\1$\2
+
+# X->YB
+
+re(([AC])(X))->\1Y\2
+#21,(Y) (X) -> $$1 B$ $$2, 1
+re((Y)(X))->\1D$\2
+
+# Y->SB
+
+re(([AC])(Y))->\1S\2
+re((S)(Y))->\1B$\2
+
+# S->
+
+re(([ACc])(S))->\1$\2
+
+# rule 4
+
+# for B
+re(([XYZSUABCDKLcPQVOR]$)([XYZSUABCDKLOR]B))->\1P\2
+re((P[XYZSUABCDKLOR])(B))->\1U$\2
+
+# for D
+re(([XYZSUABCDKLcPQVOR]$)([XYZSUABCDKLOR]D))->\1Q\2
+re((Q[XYZSUABCDKLOR])(D))->\1U$\2
+
+# rule 5
+
+#for B
+re((P)([XYZSUABCDKLOR]U))->\1$\2
+re(($[XYZSUABCDKLOR])(U))->\1$\2
+
+#for D
+re((Q)([XYZSUABCDKLOR]U))->\1$\2
+re(($[XYZSUABCDKLOR])(U))->\1$\2
+
+# rule 6
+
+# for B
+re(([ACBDc][ACBDc]|$[XYZSUABCDKLOR]|#[PQV])($P))->\1B$\2
+re(($$)(P$))->\1#\2
+
+# for D
+re(([ACBDc][ACBDc]|$[XYZSUABCDKLOR]|#[PQV])($Q))->\1D$\2
+re(($$)(Q$))->\1#\2
+
+# rule 7
+re(([BD]$)($#))->\1U\2
+re((U$)(#))->\1U\2
+
+# rule 8
+
+re(([XYZSUABCDKLcPQVOR]#)([PQV]B))->\1O\2
+re((O[PQV])(B))->\1U$\2
+
+re(([XYZSUABCDKLcPQVOR]#)([PQV]D))->\1R\2
+re((R[PQV])(D))->\1U$\2
+
+# rule 9
+
+re(([OR])([PQV]U))->\1#\2
+re((#[PQV])(U))->\1$\2
+
+# rule 10
+
+re(([ACBDc][ACBDc]|$[XYZSUABCDKLOR]|#[PQV])(#O))->\1B$\2
+re(([ACBDc][ACBDc]|$[XYZSUABCDKLOR]|#[PQV])(#R))->\1D$\2
+re(($#)([OR]#))->\1$\2
+
+# rule 11
+re(([BD]$)(#$))->\1U\2
+re((U#)($))->\1V\2
+
+#rule 12
+
+#for AB
+re(([ACc]A)(B))->\1K$\2
+re(([ACc])(AK))->\1$\2
+
+#for CD
+re(([ACc]C)(D))->\1L$\2
+re(([ACc])(CL))->\1$\2
+
+#rule 13
+re(($A)([K]))->\1$\2
+re(($C)([L]))->\1$\2

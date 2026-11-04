@@ -1,0 +1,76 @@
+# Matrix grammar with appearance checking, G = ({X, Y, Z, A, B, #}, {a}, XA, M, F). A rule of F, written (A -> #)_ac below, is
+# applied if its symbol occurs and skipped if it does not (appearance checking); # is a trap symbol that is never removed, so
+# applying such a rule kills the derivation. Skipping it therefore means "continue only if A does not occur". Matrices:
+#   m1 = (X -> X, A -> BB)         double one A (the first rule only tests that X occurs)
+#   m2 = (X -> Y, A -> #)_ac       X -> Y, only if no A is left
+#   m3 = (Y -> Y, B -> A)          turn one B back into an A
+#   m4 = (Y -> X, B -> #)_ac       Y -> X, only if no B is left: a new round can start
+#   m5 = (X -> Z)                  start to finish
+#   m6 = (Z -> Z, A -> a)          turn one A into a
+#   m7 = (Z -> lambda, A -> #)_ac  end, only if no A is left
+# L(G) = { a^(2^n) : n >= 0 }.
+# Translation: a matrix is a chain of components (as in the matrix grammar of entry 8) and component 1 chooses the matrix. An
+# appearance-checked rule is a pair of rules in one component: the rule itself (A -> #, applied when A occurs) and a send()
+# with forbid: A (the rule is skipped when A does not occur). The words with # can never become terminal. The configuration
+# The [model] section below drops them (reject_strings = "#") and the [run] section sets the number of steps.
+
+[model]
+reject_strings = "#"
+reject_max_len = 40
+
+[run]
+# the trap symbol # marks dead words: drop them. a^1, a^2, a^4 and a^8 appear at steps 8, 26, 56 and 110 in component 15
+steps = 110
+
+# the words of the language: a string of terminal symbols (lower-case letters) that reaches component 15 is marked
+[model.components.15.marks]
+terminal = '\A[a-z]*\Z'
+
+[axioms]
+1 = ["XA"]
+
+[rules.1]
+# choose a matrix: its first component is 2, 4, 6, 8, 10, 11 or 13
+send(), 2
+send(), 4
+send(), 6
+send(), 8
+send(), 10
+send(), 11
+send(), 13
+# m1
+[rules.2]
+X -> X, 3
+[rules.3]
+A -> B B, 1
+# m2: the second rule is checked for appearance of A
+[rules.4]
+X -> Y, 5
+[rules.5]
+A -> #, 1
+send(), 1; forbid: A
+# m3
+[rules.6]
+Y -> Y, 7
+[rules.7]
+B -> A, 1
+# m4: the second rule is checked for appearance of B
+[rules.8]
+Y -> X, 9
+[rules.9]
+B -> #, 1
+send(), 1; forbid: B
+# m5
+[rules.10]
+X -> Z, 1
+# m6
+[rules.11]
+Z -> Z, 12
+[rules.12]
+A -> a, 1
+# m7: the second rule is checked for appearance of A, the words that leave it are in component 15
+[rules.13]
+Z -> , 14
+[rules.14]
+A -> #, 15
+send(), 15; forbid: A

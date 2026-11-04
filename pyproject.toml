@@ -1,0 +1,49 @@
+[build-system]
+requires = ["uv_build>=0.10.12,<0.11"]
+build-backend = "uv_build"
+
+[project]
+name = "gcrsim"
+version = "0.1.0"
+description = "Graph-controlled string rewriting simulator (insertion-deletion systems and other regulated rewriting)"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+dependencies = []
+authors = [{ name = "Sergey Verlan" }]
+keywords = ["rewriting", "formal languages", "insertion-deletion", "graph-controlled grammars", "simulator"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering",
+    "Intended Audience :: Science/Research",
+]
+
+[project.urls]
+"Perl version" = "https://github.com/sverlan/gcrsim-perl"
+
+[project.scripts]
+gcrsim = "gcrsim.cli:main"
+gcrsim-convert = "gcrsim.convert:main_convert"
+gcrsim-retention = "gcrsim.retention:main"
+
+[tool.uv.build-backend]
+module-name = "gcrsim"
+module-root = ""
+# the source distribution also carries what is needed to read and test the package
+source-include = ["SPEC.md", "CHANGELOG.md", "docs/**", "examples/**", "tests/**"]
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = [
+    "perl: differential test against the original Perl simulator (skipped when Perl is unavailable)",
+    "slow: long-running test (deselect with -m 'not slow')",
+]

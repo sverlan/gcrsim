@@ -1,0 +1,31 @@
+# Derivations of bounded index with several nonterminals. G: S -> AB, A -> aA | a, B -> bB | b generates { a^n b^m : n, m >= 1 }.
+# Every derivation has at most 2 nonterminals at a time (AB, aAB or AbB, ...), so G has index 2 and the restriction "at most 2
+# nonterminals" changes nothing; with "at most 1" nothing is generated, because the first step already gives 2.
+# The nonterminals are a class N, and the setting counts the symbols of the class together
+# ([model.components.0.filters] below: max_count.class.N = 2).
+
+[symbols.classes]
+N = "S A B"
+
+[model]
+reject_max_len = 12
+
+[model.components.0.filters]          # 0 = every component
+max_count.class.N = 2          # the symbols of the class N together at most 2 times: derivations of index at most 2
+
+# the words of the language: a string of terminal symbols (lower-case letters) that reaches component 1 is marked
+[model.marks]
+terminal = '\A[a-z]*\Z'
+
+[axioms]
+1 = ["S"]
+
+[rules]
+# S -> AB
+S -> A B
+# A -> aA | a
+A -> a A
+A -> a
+# B -> bB | b
+B -> b B
+B -> b

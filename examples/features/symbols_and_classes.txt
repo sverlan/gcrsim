@@ -1,0 +1,17 @@
+# Multi-character symbols and classes. p1 and p2 are single symbols (lexemes), {P} is the class { p1, p2 }.
+# The rule rewrites any symbol of P by X.  On p1 a p2 the results are X a p2 and p1 a X.
+
+[symbols]
+# the alphabet: p1 and p2 are single symbols (lexemes); a string of symbols separated by spaces
+alphabet = "a X p1 p2"
+
+# the class P is the set { p1, p2 }
+[symbols.classes]
+P = "p1 p2"
+
+[axioms]
+1 = ["p1 a p2"]
+
+[rules]
+# replace any symbol of the class P by X
+{P} -> X

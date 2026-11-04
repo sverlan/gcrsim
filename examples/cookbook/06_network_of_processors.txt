@@ -1,0 +1,16 @@
+# Network of evolutionary processors with two nodes.
+# Node 1 substitutes a -> b at any place and keeps the result.  A word leaves node 1 for node 2 only when it
+# contains no a (the output filter of the node: forbid:a).   Input word aab; node 2 receives bbb.
+
+# the words of the language: a string of terminal symbols (lower-case letters) that reaches component 2 is marked
+[model.components.2.marks]
+terminal = '\A[a-z]*\Z'
+
+[axioms]
+1 = ["aab"]
+
+[rules.1]
+# node 1: replace an a by b anywhere and keep the result in node 1
+sub( , a, b, ), 1
+# output filter: a word goes to node 2 only if it contains no a
+send(), 2; forbid: a

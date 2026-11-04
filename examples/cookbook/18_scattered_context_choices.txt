@@ -1,0 +1,14 @@
+# What the regular-expression form of a scattered rule does when its symbols occur more than once. The scattered rule (A, B) -> (x, y)
+# applied to ABB has two results, xyB (the first B is rewritten) and xBy (the second B is). One regular expression gives one of them:
+# the lazy gap A(.*?)B finds the first B, the greedy gap A(.*)B the last one. Writing both rules gives both results. With three B's
+# the middle one would still be missed: a regular expression cannot enumerate all the choices.
+# On ABB: xyB and xBy.
+
+[axioms]
+1 = ["ABB"]
+
+[rules]
+# (A, B) -> (x, y), the first B
+re(A(.*?)B) -> x\1y
+# the same, the last B
+re(A(.*)B) -> x\1y

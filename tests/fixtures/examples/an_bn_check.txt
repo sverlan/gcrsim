@@ -1,0 +1,15 @@
+
+# Checking a grammar: this one is meant to generate a^n b^n only, but the last
+# rule is a deliberate mistake (it adds two b's). The configuration lists the
+# expected terminal strings; any other terminal string is flagged and traced:
+#
+#   python -m gcrsim examples/an_bn_check.txt 8 --trace-mark-label unexpected --fail-on-mark unexpected
+
+[axioms]
+1 = ["S"]
+
+[rules]
+S->aS,2
+2,S->Sb
+S->
+S->bb

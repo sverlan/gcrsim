@@ -1,0 +1,16 @@
+# A grammar for { a^n b^n : n >= 0 } with a deliberate mistake, the extra rule S -> bSa. The Python files next to it say what is
+# expected and flag every other word. Run:
+#   gcrsim examples/python/anbn_with_mistake.txt 5 --python-filter examples/python/check_infinite.py
+#   gcrsim examples/python/anbn_with_mistake.txt 5 --python-filter examples/python/check_from_file.py
+#   gcrsim examples/python/anbn_with_mistake.txt 6 --python-filter examples/python/mark_what_is_cut.py
+#   gcrsim examples/python/anbn_with_mistake.txt 5 --python-filter examples/python/beam.py
+# (a Python file executes code: run only files you trust.)
+
+[axioms]
+1 = ["S"]
+
+[rules]
+S -> a S b
+# the mistake
+S -> b S a
+S ->

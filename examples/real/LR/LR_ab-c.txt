@@ -1,0 +1,79 @@
+# Left-right insertion-deletion rules, variant ab-c.
+# Rules written as insertions / deletions / substitutions; the line before each translated rule starts with '# old:'
+# and shows the original rule. Run:  gcrsim examples/real/LR/LR_ab-c.txt 5
+
+[model]
+# Translation of the Perl filter_next of the original configuration: rejections are filters,
+# the printed '!!Terminal!!' lines are the mark 'terminal'.
+history = true
+reject_strings = ""
+reject_max_len = 100
+
+[run]
+print_hide = ""
+print_max_len = 100
+
+[model.components.0.filters]
+forbid = ['(E.*){3}', '(J.*){3}', '(Q.*){3}']
+
+[axioms]
+
+1 = ["LwababR"]
+
+[rules]
+
+#down
+
+# old: R->KR,2
+ins(,K,R),2
+
+# old: 2,KR->R,3
+2,del(,K,R),3
+
+# old: 3,bR->R,4
+3,del(,b,R),4
+
+# old: 4,aR->R,5
+4,del(,a,R),5
+
+# old: 5,R->DR,6
+5,ins(,D,R),6
+
+# old: 6,R->HR,7
+6,ins(,H,R),7
+
+# old: 7,L->Lc,8
+7,ins(L,c,),8
+
+# old: 8,L->LS,9
+8,ins(L,S,),9
+
+#here
+# old: 9,HR->R,8
+9,del(,H,R),8
+
+#up
+
+# old: 8,R->ER,7
+8,ins(,E,R),7
+
+# old: 7,R->QR,6
+7,ins(,Q,R),6
+
+# old: 6,LS->L,5
+6,del(L,S,),5
+
+# old: 5,QR->R,4
+5,del(,Q,R),4
+
+# old: 4,R->JR,3
+4,ins(,J,R),3
+
+# old: 3,JR->R,2
+3,del(,J,R),2
+
+# old: 2,ER->R
+2,del(,E,R)
+
+# old: DR->R
+del(,D,R)

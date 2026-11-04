@@ -1,0 +1,47 @@
+name: tests
+
+# The tests run on every push and on every pull request. Publishing to PyPI is a separate workflow (release.yml)
+# that runs only on a version tag.
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    name: tests (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.11", "3.14"]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7   # installs a static uv release and caches it
+        with:
+          version: "0.10.12"
+          enable-cache: true
+      # The comparison tests with the original Perl simulator run when a perl is on the PATH
+      # (tests/fixtures/perl/gcrsim.pl is part of the repository) and are skipped otherwise.
+      - run: uv run --locked --python ${{ matrix.python }} python -m pytest -q
+
+  package:
+    name: build and check the package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.10.12"
+          enable-cache: true
+      - run: uv build --out-dir dist
+      - name: the wheel installs and runs
+        run: |
+          uvx --from dist/*.whl gcrsim --version
+          uvx --from dist/*.whl gcrsim-convert --help > /dev/null
+          uvx --from dist/*.whl gcrsim-retention --help > /dev/null
+          uvx --from dist/*.whl gcrsim examples/cookbook/07_graph_controlled.txt 3 --quiet
+      - name: the source archive is complete (its tests pass)
+        run: |
+          mkdir sdist-check && tar -xzf dist/*.tar.gz -C sdist-check
+          cd sdist-check/gcrsim-* && uv run --python 3.14 --with pytest python -m pytest -q

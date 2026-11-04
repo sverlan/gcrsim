@@ -1,0 +1,23 @@
+# Scattered-context grammar G = ({S, A, B, C}, {a, b, c}, S, P) with the rules (each rewrites several symbols at once, which
+# stand at arbitrary places of the word, in this order):
+#   (S) -> (ABC)    (A, B, C) -> (aA, bB, cC)    (A, B, C) -> (a, b, c)
+# L(G) = { a^n b^n c^n : n >= 1 }.
+# With re(...) one scattered rule is a regular expression with a lazy gap between the symbols: A(.*?)B(.*?)C finds A, B, C in this
+# order and \1, \2 are what stands between them. This is exact when every symbol occurs once in the word, as here.
+# It is NOT exact in general: a regular expression gives one decomposition per start position, so a scattered rule whose symbols
+# occur several times is applied to some of the choices only (see 18_scattered_context_choices.txt).
+
+# the words of the language: a string of terminal symbols (lower-case letters) that reaches component 1 is marked
+[model.marks]
+terminal = '\A[a-z]*\Z'
+
+[axioms]
+1 = ["S"]
+
+[rules]
+# (S) -> (ABC)
+S -> A B C
+# (A, B, C) -> (aA, bB, cC): the symbols between A and B and between B and C stay where they are
+re(A(.*?)B(.*?)C) -> aA\1bB\2cC
+# (A, B, C) -> (a, b, c)
+re(A(.*?)B(.*?)C) -> a\1b\2c

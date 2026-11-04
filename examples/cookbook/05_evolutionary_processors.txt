@@ -1,0 +1,17 @@
+# The three operations of evolutionary processors, shown together on the word aY. (In the classical definition one processor
+# does one kind of operation; here the three rules sit in one component only to show their notation.)
+#   substitution of a symbol anywhere:  a -> b        sub(,a,b,)
+#   insertion at the left end:          lambda -> X   ins({start},X,)
+#   deletion at the right end:          Y -> lambda   del(,Y,{end})
+# In one step the three rules give  bY,  XaY  and  a.
+
+[axioms]
+1 = ["aY"]
+
+[rules]
+# substitution: replace an a by b, anywhere in the word
+sub( , a, b, )
+# insertion at the left end: put X in front of the word
+ins({start}, X, )
+# deletion at the right end: remove a Y that is the last symbol
+del( , Y, {end})

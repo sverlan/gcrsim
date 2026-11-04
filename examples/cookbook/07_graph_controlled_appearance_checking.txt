@@ -1,0 +1,43 @@
+# Graph-controlled grammar with appearance checking. Every rule has a success field (where to go after it was applied) and a
+# failure field (where to go when it is NOT applicable because its symbol does not occur: appearance checking):
+#   r1: A -> BB   success {r1}          failure {r2}        while an A occurs, replace it by BB; with no A left go to r2
+#   r2: B -> A    success {r2}          failure {r1, r4}    turn the B back into A; with no B left start a new round or finish
+#   r4: A -> a    success {r4}          failure {end}       turn the A into a; with no A left the word is finished
+# Start: the word A, at r1 or at r4.   L = { a^(2^n) : n >= 0 }
+# Translation: a node is a component, a success field is the target of the rule, a failure arrow is a send() that is allowed
+# only if the symbol of the rule does not occur (forbid:). Component 4 is the end, and it holds the generated words.
+# The number of steps and the longest word are set in the [run] and [model] sections below.
+
+[model]
+reject_max_len = 20
+
+[run]
+# a^1, a^2, a^4 and a^8 appear at steps 2, 8, 18 and 36
+steps = 36
+
+# the words of the language: a string of terminal symbols (lower-case letters) that reaches component 4 is marked
+[model.components.4.marks]
+terminal = '\A[a-z]*\Z'
+
+[axioms]
+# the start nodes are r1 (component 1) and r4 (component 3)
+1 = ["A"]
+3 = ["A"]
+
+[rules.1]
+# r1: A -> BB, success: stay at r1
+A -> B B, 1
+# r1 failure: no A occurs, go to r2 (component 2)
+send(), 2; forbid: A
+[rules.2]
+# r2: B -> A, success: stay at r2
+B -> A, 2
+# r2 failure: no B occurs, go to r1 (a new round) ...
+send(), 1; forbid: B
+# ... or to r4 (component 3, finish)
+send(), 3; forbid: B
+[rules.3]
+# r4: A -> a, success: stay at r4
+A -> a, 3
+# r4 failure: no A occurs, the word is finished (component 4)
+send(), 4; forbid: A

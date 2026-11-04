@@ -1,0 +1,21 @@
+# Programmed grammar with failure fields (appearance checking), rules
+#   r1: B -> b   success field { r1 }   failure field { r2 }     (r2 is entered only when r1 is not applicable)
+#   r2: A -> x   success field { }
+# Start word ABB.  Derivation: ABB => AbB => Abb => xbb.   L = { xbb }
+# The failure field is a send() allowed only when the left-hand side does not occur (forbid:B).
+
+# the words of the language: a string of terminal symbols (lower-case letters) that reaches component 3 is marked
+[model.components.3.marks]
+terminal = '\A[a-z]*\Z'
+
+[axioms]
+1 = ["ABB"]
+
+[rules.1]
+# r1: B -> b, success field {r1}: stay here
+B -> b, 1
+# failure field {r2}: if no B is left (forbid: B), go on to r2 in component 2
+send(), 2; forbid: B
+[rules.2]
+# r2: A -> x, then stop in component 3
+A -> x, 3

@@ -1,0 +1,23 @@
+# A valence grammar over the integers: S -> aS has valence +1, S -> bS has valence -1, S -> lambda has valence 0, and a derivation
+# is successful when the valences add up to 0, that is, when the word has as many a as b.
+# The weights are written into the word: P stands for +1 and M for -1. Component 2 is a gate, and valence.py lets a word into it only
+# when its weights add up to zero (a comparison of two counts, which a regular expression or a count limit cannot make). Component 3
+# removes the weight symbols one by one, so the words of the language come out clean.
+#   gcrsim examples/python/valence.txt 12 --python-filter examples/python/valence.py
+#   gcrsim examples/python/valence.txt 12 --python-filter examples/python/valence_keep.py   (the same gate as the function keep)
+# (a Python file executes code: run only files you trust.)
+
+[axioms]
+1 = ["S"]
+
+[rules.1]
+# the three rules with their valences; the last one hands the word to the gate
+S -> a S P, 1
+S -> b S M, 1
+S -> , 2
+[rules.2]
+send(), 3
+# clean-up loop: delete the weight symbols
+[rules.3]
+del( , P, ), 3
+del( , M, ), 3

@@ -1,0 +1,13 @@
+# Internal contextual grammar (Marcus) G = ({a,b}, { ab }, { (ab, (a, b)) }):
+# the selector ab may be surrounded by the context (a, b):  ab -> a ab b.   L = { a^n b^n : n >= 1 }
+
+# the words of the language: a string of terminal symbols (lower-case letters) that reaches component 1 is marked
+[model.marks]
+terminal = '\A[a-z]*\Z'
+
+[axioms]
+1 = ["ab"]
+
+[rules]
+# the selector ab is surrounded by the context (a, b)
+ab -> a ab b

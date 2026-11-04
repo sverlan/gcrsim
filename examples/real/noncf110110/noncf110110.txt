@@ -1,0 +1,165 @@
+# An insertion-deletion system of size 110110 that accepts a non-context-free language. It does not generate words: the axiom
+# is the input word (with the markers F0 F1 and the end marker x), and the input is accepted when the derivation reaches the
+# bare string x, which the mark 'accepted' reports.
+# Rules written as insertions / deletions / substitutions; the line before each translated rule starts with '# old:'
+# and shows the original rule. Run:  gcrsim examples/real/noncf110110/noncf110110.txt 12
+
+[symbols]
+# the symbols have two or three characters: a0 a1, B0 B1, F0 F1, X, Y, D with two digits, and x
+alphabet = "a0 a1 B0 B1 F0 F1 x X00 X01 X10 X11 Y00 Y01 Y10 Y11 D00 D01 D10 D11"
+
+[symbols.classes]
+XYD = "X00 X01 X10 X11 Y00 Y01 Y10 Y11 D00 D01 D10 D11"
+
+[model]
+# The original configuration also had two require patterns and two forbid patterns (B0B0, B1B1). The require patterns reject the
+# last strings of every derivation, even the bare string x, so the accepted mark could never fire. The forbid patterns only make
+# the run about six times smaller. Both are left out; the limit on the identifiers is what keeps the run small.
+# Reaching x from the axiom takes 12 steps.
+# Translation of the Perl filter_next of the original configuration: rejections are filters, the printed '!!Terminal!!' lines are the mark 'accepted'.
+history = true
+reject_strings = ""
+reject_max_len = 150
+
+[run]
+print_hide = ""
+print_max_len = 150
+
+[model.components.0.filters]
+# each of the symbols of the class XYD (the original pattern '([XYD]\d{2}).*\1') occurs at most once
+max_count.re."{XYD}" = 1
+
+[model.components.1.marks]
+accepted = { pattern = '\Ax\Z' }
+
+[axioms]
+
+# A->bC
+
+1 = ["a1 a0 F0 F1 x"]
+
+[rules]
+
+#10
+# old: a0->B0a0
+ins(,B0,a0)
+# old: a1->B1a1
+ins(,B1,a1)
+
+#20
+# old: a0->X00a0
+ins(,X00,a0)
+# old: a1->X10a1
+ins(,X10,a1)
+
+#30
+# old: X00->Y00X00
+ins(,Y00,X00)
+# old: X01->Y01X01
+ins(,Y01,X01)
+# old: X10->Y10X10
+ins(,Y10,X10)
+# old: X11->Y11X11
+ins(,Y11,X11)
+
+#40
+# old: Y00->D00Y00
+ins(,D00,Y00)
+# old: Y01->D01Y01
+ins(,D01,Y01)
+# old: Y10->D10Y10
+ins(,D10,Y10)
+# old: Y11->D11Y11
+ins(,D11,Y11)
+
+#50
+# old: Y00->X01Y00
+ins(,X01,Y00)
+# old: Y01->X00Y01
+ins(,X00,Y01)
+# old: Y10->X11Y10
+ins(,X11,Y10)
+# old: Y11->X10Y11
+ins(,X10,Y11)
+
+#60
+# old: a0B1->B1
+del(,a0,B1)
+# old: a1B0->B0
+del(,a1,B0)
+
+#70
+# old: B0D00->D00
+del(,B0,D00)
+# old: B0D01->D01
+del(,B0,D01)
+# old: B1D10->D10
+del(,B1,D10)
+# old: B1D11->D11
+del(,B1,D11)
+
+#80
+# old: D00D01->D01
+del(,D00,D01)
+# old: D01D00->D00
+del(,D01,D00)
+# old: D10D11->D11
+del(,D10,D11)
+# old: D11D10->D10
+del(,D11,D10)
+
+#83
+# old: X10D00->D00
+del(,X10,D00)
+# old: X11D00->D00
+del(,X11,D00)
+# old: X00D10->D10
+del(,X00,D10)
+# old: X01D10->D10
+del(,X01,D10)
+
+#86
+# old: Y10D01->D01
+del(,Y10,D01)
+# old: Y11D01->D01
+del(,Y11,D01)
+# old: Y00D11->D11
+del(,Y00,D11)
+# old: Y01D11->D11
+del(,Y01,D11)
+
+#90
+# old: a0F0->F0
+del(,a0,F0)
+
+#100
+# old: X00F0->F0
+del(,X00,F0)
+# old: X01F0->F0
+del(,X01,F0)
+
+#110
+# old: Y00F1->F1
+del(,Y00,F1)
+# old: Y01F1->F1
+del(,Y01,F1)
+
+#120
+# old: F0F1->F1
+del(,F0,F1)
+# old: F1F0->F0
+del(,F1,F0)
+
+#140
+# old: F1x->x
+del(,F1,x)
+
+#150
+# old: D00x->x
+del(,D00,x)
+# old: D01x->x
+del(,D01,x)
+# old: D10x->x
+del(,D10,x)
+# old: D11x->x
+del(,D11,x)

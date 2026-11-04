@@ -1,0 +1,25 @@
+# The Post tag system of 19_post_tag_system.txt (productions a -> bc, b -> a, c -> aaa, deletion number 2) with left-right
+# insertion-deletion rules only, and no regular expression.
+# One tag step takes two steps here: the first symbol and the one after it are deleted together ({any} is any symbol), and the
+# component that receives the word remembers which symbol was read, so that the next step can insert P(x) at the right end.
+# The word of the tag system is in component 1 at the steps 0, 2, 4, ...
+
+# the system halts on a word with fewer than two symbols: that word is marked
+[model.marks]
+halt = '\A[abc]?\Z'
+
+[axioms]
+1 = ["aaa"]
+
+[rules.1]
+# read the first symbol and delete it with the next one: components 2, 3, 4 stand for a, b, c
+del({start}, a{any}, ), 2
+del({start}, b{any}, ), 3
+del({start}, c{any}, ), 4
+# insert the production of the symbol read at the right end and return to component 1
+[rules.2]
+ins( , bc, {end}), 1
+[rules.3]
+ins( , a, {end}), 1
+[rules.4]
+ins( , aaa, {end}), 1

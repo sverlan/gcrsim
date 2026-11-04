@@ -1,0 +1,196 @@
+# Insertion-only system of size (2,2,2).
+# Rules written as insertions / deletions / substitutions; the line before each translated rule starts with '# old:'
+# and shows the original rule. Run:  gcrsim examples/real/ins/ins222.txt 5
+
+[symbols.classes]
+C1 = "A C c"
+C2 = "A C"
+C3 = "A B C D K L O P Q R S U V X Y Z c"
+C4 = "A B C D K L O R S U X Y Z"
+C5 = "A B C D c"
+C6 = "P Q V"
+C7 = "B D"
+C8 = "O R"
+C9 = "K"
+C10 = "L"
+
+#  Used symbols: P as \bar{B}_1, O as B_1, Q as \bar{D}_1, R as D_1, V as bar{U}, K1 as K and K2 as L
+#  # as bar{$}
+#
+
+# List symbols:
+# [JUMP] = X,Y,Z,S,U,A,B,C,D,K,L
+# [JUMP_BAR] = P,Q,V
+# [ALL] = [JUMP],[JUMP_BAR],$[JUMP],#[JUMP_BAR]
+
+[model]
+# Translation of the Perl filter_next of the original configuration: rejections are filters,
+# the printed '!!Terminal!!' lines are the mark 'terminal'.
+history = true
+reject_strings = ""
+reject_max_len = 1000
+
+[run]
+print_hide = ""
+print_max_len = 1000
+
+[model.components.1.marks]
+terminal = { pattern = '\A(A|C|B|D|c)*(\$(E|X|Y|Z|S|U|B|A|C|B|D|K|L|O|R)|#(P|Q|V))*\Z', message = "!!Terminal!!:{string} ({component})" }
+
+[axioms]
+
+#[cE]
+
+#[cACAC$SB$Z$D$Y$B$X$E]
+
+1 = ["cACAC$SB$ZD$Y$B$X$E"]
+
+#[cACA$SB$ZD$YB$X$E]
+
+#[cA$C$L$D$$QAD$$QKD$$QBD$$QUD$$QUD$U#V$R#P$U$D$$QSD$$QUD$$QBD$$Q$YU$D$XE]
+
+#[cACAB$U$U#P$S$U$B$YB$X$E]
+
+[rules]
+
+# S-> A S' BB transcribed as:
+# E->AX X->YB Y->SB S->
+
+# rules 1,2,3
+
+#E->AX
+
+# old: re(([ACc])(E))->\1ACAX\2
+ins({C1},ACAX,E)
+# old: re((X)(E))->\1$\2
+ins(X,$,E)
+
+# X->YB
+
+# old: re(([AC])(X))->\1Y\2
+ins({C2},Y,X)
+#21,(Y) (X) -> $$1 B$ $$2, 1
+# old: re((Y)(X))->\1D$\2
+ins(Y,D$,X)
+
+# Y->SB
+
+# old: re(([AC])(Y))->\1S\2
+ins({C2},S,Y)
+# old: re((S)(Y))->\1B$\2
+ins(S,B$,Y)
+
+# S->
+
+# old: re(([ACc])(S))->\1$\2
+ins({C1},$,S)
+
+# rule 4
+
+# for B
+# old: re(([XYZSUABCDKLcPQVOR]$)([XYZSUABCDKLOR]B))->\1P\2
+ins({C3}$,P,{C4}B)
+# old: re((P[XYZSUABCDKLOR])(B))->\1U$\2
+ins(P{C4},U$,B)
+
+# for D
+# old: re(([XYZSUABCDKLcPQVOR]$)([XYZSUABCDKLOR]D))->\1Q\2
+ins({C3}$,Q,{C4}D)
+# old: re((Q[XYZSUABCDKLOR])(D))->\1U$\2
+ins(Q{C4},U$,D)
+
+# rule 5
+
+#for B
+# old: re((P)([XYZSUABCDKLOR]U))->\1$\2
+ins(P,$,{C4}U)
+# old: re(($[XYZSUABCDKLOR])(U))->\1$\2
+ins(${C4},$,U)
+
+#for D
+# old: re((Q)([XYZSUABCDKLOR]U))->\1$\2
+ins(Q,$,{C4}U)
+# old: re(($[XYZSUABCDKLOR])(U))->\1$\2
+ins(${C4},$,U)
+
+# rule 6
+
+# for B
+# old: re(([ACBDc][ACBDc]|$[XYZSUABCDKLOR]|#[PQV])($P))->\1B$\2
+ins({C5}{C5},B$,$P)
+ins(${C4},B$,$P)
+ins(#{C6},B$,$P)
+# old: re(($$)(P$))->\1#\2
+ins($$,#,P$)
+
+# for D
+# old: re(([ACBDc][ACBDc]|$[XYZSUABCDKLOR]|#[PQV])($Q))->\1D$\2
+ins({C5}{C5},D$,$Q)
+ins(${C4},D$,$Q)
+ins(#{C6},D$,$Q)
+# old: re(($$)(Q$))->\1#\2
+ins($$,#,Q$)
+
+# rule 7
+# old: re(([BD]$)($#))->\1U\2
+ins({C7}$,U,$#)
+# old: re((U$)(#))->\1U\2
+ins(U$,U,#)
+
+# rule 8
+
+# old: re(([XYZSUABCDKLcPQVOR]#)([PQV]B))->\1O\2
+ins({C3}#,O,{C6}B)
+# old: re((O[PQV])(B))->\1U$\2
+ins(O{C6},U$,B)
+
+# old: re(([XYZSUABCDKLcPQVOR]#)([PQV]D))->\1R\2
+ins({C3}#,R,{C6}D)
+# old: re((R[PQV])(D))->\1U$\2
+ins(R{C6},U$,D)
+
+# rule 9
+
+# old: re(([OR])([PQV]U))->\1#\2
+ins({C8},#,{C6}U)
+# old: re((#[PQV])(U))->\1$\2
+ins(#{C6},$,U)
+
+# rule 10
+
+# old: re(([ACBDc][ACBDc]|$[XYZSUABCDKLOR]|#[PQV])(#O))->\1B$\2
+ins({C5}{C5},B$,#O)
+ins(${C4},B$,#O)
+ins(#{C6},B$,#O)
+# old: re(([ACBDc][ACBDc]|$[XYZSUABCDKLOR]|#[PQV])(#R))->\1D$\2
+ins({C5}{C5},D$,#R)
+ins(${C4},D$,#R)
+ins(#{C6},D$,#R)
+# old: re(($#)([OR]#))->\1$\2
+ins($#,$,{C8}#)
+
+# rule 11
+# old: re(([BD]$)(#$))->\1U\2
+ins({C7}$,U,#$)
+# old: re((U#)($))->\1V\2
+ins(U#,V,$)
+
+#rule 12
+
+#for AB
+# old: re(([ACc]A)(B))->\1K$\2
+ins({C1}A,K$,B)
+# old: re(([ACc])(AK))->\1$\2
+ins({C1},$,AK)
+
+#for CD
+# old: re(([ACc]C)(D))->\1L$\2
+ins({C1}C,L$,D)
+# old: re(([ACc])(CL))->\1$\2
+ins({C1},$,CL)
+
+#rule 13
+# old: re(($A)([K]))->\1$\2
+ins($A,$,{C9})
+# old: re(($C)([L]))->\1$\2
+ins($C,$,{C10})

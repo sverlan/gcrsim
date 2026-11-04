@@ -1,0 +1,27 @@
+# Random-context grammar for { a^n b^n c^n : n >= 1 }.
+# Plain rules with permit / forbid words (a rewriting grammar, not an insertion-deletion system).
+# Run:  gcrsim examples/real/rcanbncn/rcanbncn.txt 16
+
+# A random-context grammar for { a^n b^n c^n : n >= 1 } using permit/forbid words
+# (a rule applies only if every permitted word occurs in the string and no
+# forbidden word does).  D, E, F stand for the marked forms of A, B, C.
+#
+#   gcrsim examples/real/rcanbncn/rcanbncn.txt 16
+
+[axioms]
+1 = ["S"]
+
+[rules]
+S->ABC
+# one round: A, then B, then C are rewritten and marked
+A->aD,1;permit:B,C;forbid:D,E,F
+B->bE,1;permit:D,C;forbid:E,F
+C->cF,1;permit:D,E;forbid:F
+# unmark in the order D, E, F
+D->A,1;permit:E,F
+E->B,1;permit:F;forbid:D
+F->C,1;forbid:D,E
+# finish: A, then B, then C become terminals
+A->a,1;permit:B,C;forbid:D,E,F
+B->b,1;permit:C;forbid:A
+C->c,1;forbid:A,B

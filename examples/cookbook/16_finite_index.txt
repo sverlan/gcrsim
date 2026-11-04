@@ -1,0 +1,24 @@
+# Derivations of bounded index. The index of a derivation is the largest number of nonterminals in a sentential form of it; a grammar
+# has finite index if some k gives every word of its language a derivation of index at most k. Here the index is at most 2: a word
+# with more than 2 S is dropped, so the run generates the words that have a derivation of index at most 2.
+# G: S -> SS | a.  The restriction is a setting ([model.components.0.filters] below), not part of the rules.
+# Run:  gcrsim examples/cookbook/16_finite_index.txt 8
+
+[model.components.0.filters]          # 0 = every component
+max_count = { S = 2 }          # reject a word with more than 2 S (one nonterminal here)
+# With several nonterminals declare them as a class in the model (see 16_bounded_index_classes.txt) and count the class.
+# A regular expression does the same: this one rejects a word with more than 2 upper-case symbols (each repetition skips the
+# other symbols and takes one nonterminal, anchored at the start):  forbid = ['\A(?:[^A-Z]*[A-Z]){3}']
+
+# the words of the language: a string of terminal symbols (lower-case letters) that reaches component 1 is marked
+[model.marks]
+terminal = '\A[a-z]*\Z'
+
+[axioms]
+1 = ["S"]
+
+[rules]
+# S -> SS
+S -> S S
+# S -> a
+S -> a

@@ -1,0 +1,12 @@
+# Conditions with alternatives. In the classical formalisms a permitting set requires ALL of its words (that is `;permit:`), and
+# "some word of a set" is written with several rules, one for each word. gcrsim has a short form for it, `;permit-any:` (an
+# extension, not a classical definition): the rule (X -> Y, some of {ab, ba}, none of {c}) applies when the word contains ab or ba
+# and does not contain c.
+# On Xab and Xba the rule gives Yab and Yba; Xabc (forbidden c) and Xbb (no permitting word) are blocked.
+
+[axioms]
+1 = ["Xab", "Xba", "Xabc", "Xbb"]
+
+[rules]
+# X -> Y if the word contains ab or ba (permit-any) and does not contain c (forbid)
+X -> Y, 1; permit-any: ab, ba; forbid: c

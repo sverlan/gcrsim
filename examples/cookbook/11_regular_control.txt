@@ -1,0 +1,20 @@
+# Grammar with regular control: rules r1: S -> aS, r2: S -> Sb, r3: S -> lambda,
+# control language (r1 r2)* r3.   L = { a^n b^n : n >= 0 }.
+# The states of a finite automaton for the control language are the components: r1 leads from q0 to q1,
+# r2 from q1 back to q0, r3 leaves q0 for the final state.
+
+# the words of the language: a string of terminal symbols (lower-case letters) that reaches component 3 is marked
+[model.components.3.marks]
+terminal = '\A[a-z]*\Z'
+
+[axioms]
+1 = ["S"]
+
+[rules.1]
+# r1 in state q0: S -> aS, the control moves to q1 (component 2)
+S -> a S, 2
+# r3 in state q0: S -> lambda, the control moves to the final state (component 3)
+S -> , 3
+[rules.2]
+# r2 in state q1: S -> Sb, the control moves back to q0
+S -> S b, 1

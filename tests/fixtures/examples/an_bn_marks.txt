@@ -1,0 +1,11 @@
+
+# a^n b^n with a mark for terminal words, to demonstrate trace-back:
+#   python -m gcrsim examples/an_bn_marks.txt 6 --trace-marks
+
+[axioms]
+1 = ["S"]
+
+[rules]
+S->aS,2
+2,S->Sb
+S->

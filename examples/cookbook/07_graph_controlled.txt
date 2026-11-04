@@ -1,0 +1,16 @@
+# Graph-controlled grammar: rules r1: S -> aSb, r2: S -> lambda; control graph  q1 -r1-> q1,  q1 -r2-> q2.
+# The states of the graph are the components; the target of a rule is its success field.
+# L = { a^n b^n : n >= 0 }
+
+# the words of the language: a string of terminal symbols (lower-case letters) that reaches component 2 is marked
+[model.components.2.marks]
+terminal = '\A[a-z]*\Z'
+
+[axioms]
+1 = ["S"]
+
+[rules.1]
+# r1: S -> aSb, the next rule is again in component 1
+S -> a S b, 1
+# r2: S -> lambda, the derivation continues in component 2 (the end)
+S -> , 2

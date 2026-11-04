@@ -1,0 +1,70 @@
+# Left-right insertion-deletion rules, rotation stage.
+# Rules written as insertions / deletions / substitutions; the line before each translated rule starts with '# old:'
+# and shows the original rule. Run:  gcrsim examples/real/LR/LR_rot.txt 5
+
+[model]
+# Translation of the Perl filter_next of the original configuration: rejections are filters,
+# the printed '!!Terminal!!' lines are the mark 'terminal'.
+history = true
+reject_strings = ""
+reject_max_len = 100
+
+[run]
+print_hide = ""
+print_max_len = 100
+
+[model.components.0.filters]
+forbid = ['(E.*){3}', '(J.*){3}', '(Q.*){3}']
+
+[axioms]
+
+1 = ["LwaaR"]
+
+[rules]
+
+#down
+
+# old: R->KR,2
+ins(,K,R),2
+
+# old: 2,KR->R,3
+2,del(,K,R),3
+
+# old: 3,aR->R,4
+3,del(,a,R),4
+
+# old: 4,R->DR,5
+4,ins(,D,R),5
+
+#5,R->HR,6
+
+# old: 5,L->Lc,6
+5,ins(L,c,),6
+
+# old: 6,L->LS,7
+6,ins(L,S,),7
+
+#here
+
+# old: 7,DR->R,6
+7,del(,D,R),6
+
+# old: 6,R->ER,5
+6,ins(,E,R),5
+
+#up
+
+# old: 5,LS->L,4
+5,del(L,S,),4
+
+# old: 4,R->JR,3
+4,ins(,J,R),3
+
+# old: 3,JR->R,2
+3,del(,J,R),2
+
+# old: 2,ER->R
+2,del(,E,R)
+
+# old: DR->R
+del(,D,R)

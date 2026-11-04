@@ -1,0 +1,134 @@
+ConfigFile ins_222.cfg
+
+#  Used symbols: P as \bar{B}_1, O as B_1, Q as \bar{D}_1, R as D_1, V as bar{U}, K1 as K and K2 as L
+#  # as bar{$} 
+#  
+
+# List symbols:
+# [JUMP] = X,Y,Z,S,U,A,B,C,D,K,L
+# [JUMP_BAR] = P,Q,V
+# [ALL] = [JUMP],[JUMP_BAR],$[JUMP],#[JUMP_BAR]
+
+Axioms
+
+#[cE]
+
+#[cACAC$SB$Z$D$Y$B$X$E]
+
+[cACAC$SB$ZD$Y$B$X$E]
+
+#[cACA$SB$ZD$YB$X$E]
+
+#[cA$C$L$D$$QAD$$QKD$$QBD$$QUD$$QUD$U#V$R#P$U$D$$QSD$$QUD$$QBD$$Q$YU$D$XE]
+
+#[cACAB$U$U#P$S$U$B$YB$X$E]
+
+Rules
+
+# S-> A S' BB transcribed as: 
+# E->AX X->YB Y->SB S->
+
+# rules 1,2,3
+
+#E->AX
+
+1,([ACc]) (E) -> $$1 A C A X $$2,1
+1, (X) (E) -> $$1  $ $$2, 1
+
+
+# X->YB
+
+1,([AC]) (X) -> $$1 Y $$2, 1
+#21,(Y) (X) -> $$1 B$ $$2, 1
+1,(Y) (X) -> $$1 D$ $$2, 1
+
+# Y->SB
+
+1,([AC]) (Y) -> $$1 S $$2, 1
+1,(S) (Y) -> $$1 B$ $$2, 1
+
+# S->
+
+1,([ACc]) (S) -> $$1 $ $$2,1
+
+
+
+# rule 4
+
+# for B
+1, ([XYZSUABCDKLcPQVOR]$) ([XYZSUABCDKLOR]B) -> $$1 P $$2, 1
+1, (P[XYZSUABCDKLOR]) (B) -> $$1 U$ $$2, 1 
+
+# for D
+1, ([XYZSUABCDKLcPQVOR]$) ([XYZSUABCDKLOR]D) -> $$1 Q $$2, 1
+1, (Q[XYZSUABCDKLOR]) (D) -> $$1 U$ $$2, 1 
+
+# rule 5
+
+#for B
+1, (P) ([XYZSUABCDKLOR]U)-> $$1 $ $$2, 1
+1, ($[XYZSUABCDKLOR]) (U)-> $$1 $ $$2, 1
+
+
+#for D
+1, (Q) ([XYZSUABCDKLOR]U)-> $$1 $ $$2, 1
+1, ($[XYZSUABCDKLOR]) (U)-> $$1 $ $$2, 1
+
+
+# rule 6
+
+# for B
+1,([ACBDc][ACBDc] | $[XYZSUABCDKLOR] |#[PQV]) ($P) ->$$1 B$ $$2, 1
+1, ($$) (P$) -> $$1 # $$2, 1 
+
+# for D
+1,([ACBDc][ACBDc] | $[XYZSUABCDKLOR] |#[PQV]) ($Q) ->$$1 D$ $$2, 1
+1, ($$) (Q$) -> $$1 # $$2, 1 
+
+
+# rule 7
+1,([BD]$) ($#) -> $$1 U $$2,1
+1,(U$) (#) -> $$1 U $$2,1
+
+
+
+# rule 8
+
+1, ([XYZSUABCDKLcPQVOR]#) ([PQV]B) -> $$1 O $$2, 1
+1, (O[PQV]) (B) -> $$1 U$ $$2, 1 
+
+1, ([XYZSUABCDKLcPQVOR]#) ([PQV]D) -> $$1 R $$2, 1
+1, (R[PQV]) (D) -> $$1 U$ $$2, 1 
+
+# rule 9
+
+1, ([OR]) ([PQV]U)-> $$1 # $$2, 1
+1, (#[PQV]) (U)-> $$1 $ $$2, 1
+
+
+# rule 10
+
+1,([ACBDc][ACBDc] | $[XYZSUABCDKLOR] |#[PQV]) (#O) ->$$1 B$ $$2, 1
+1,([ACBDc][ACBDc] | $[XYZSUABCDKLOR] |#[PQV]) (#R) ->$$1 D$ $$2, 1
+1, ($#) ([OR]#) -> $$1 $ $$2, 1 
+
+# rule 11
+1,([BD]$) (#$) -> $$1 U $$2,1
+1,(U#) ($) -> $$1 V $$2,1
+
+
+#rule 12
+
+#for AB
+1, ([ACc]A) (B) -> $$1 K$ $$2,1
+1,([ACc]) (AK) -> $$1 $ $$2,1
+
+
+#for CD
+1, ([ACc]C) (D) -> $$1 L$ $$2,1
+1,([ACc]) (CL) -> $$1 $ $$2,1
+
+
+#rule 13
+1, ($A) ([K]) -> $$1 $ $$2,1
+1, ($C) ([L]) -> $$1 $ $$2,1

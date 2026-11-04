@@ -1,0 +1,28 @@
+# Random-context grammar for { a^n b^n c^n : n >= 1 }. A rule (A -> x, P, Q) applies when every symbol of the
+# permitting set P occurs and no symbol of the forbidding set Q occurs.  D, E, F are the marked forms of A, B, C.
+#   (A -> aD, {B,C}, {D,E,F})   (B -> bE, {D,C}, {E,F})   (C -> cF, {D,E}, {F})   ...
+# They are written with ;permit: and ;forbid: after the target component.
+
+# the words of the language: a string of terminal symbols (lower-case letters) that reaches component 1 is marked
+[model.marks]
+terminal = '\A[a-z]*\Z'
+
+[axioms]
+1 = ["S"]
+
+[rules]
+# start: S -> ABC
+S -> A B C
+# first phase: rewrite A, B, C in this order, marking them as D, E, F; (A -> aD, {B,C}, {D,E,F}) means:
+# A -> aD only if B and C occur and none of D, E, F does
+A -> a D, 1; permit: B, C; forbid: D, E, F
+B -> b E, 1; permit: D, C; forbid: E, F
+C -> c F, 1; permit: D, E; forbid: F
+# unmark in the order D, E, F, giving A, B, C back
+D -> A, 1; permit: E, F
+E -> B, 1; permit: F; forbid: D
+F -> C, 1; forbid: D, E
+# last phase: turn A, B, C into terminals, in this order
+A -> a, 1; permit: B, C; forbid: D, E, F
+B -> b, 1; permit: C; forbid: A
+C -> c, 1; forbid: A, B

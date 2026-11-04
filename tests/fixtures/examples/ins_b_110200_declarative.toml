@@ -1,0 +1,16 @@
+[model]
+# Same settings as ins_b_110200_declarative.py, as data only (no code runs).
+history = true
+reject_strings = ""
+reject_max_len = 100
+
+[run]
+show_detailed_application = true
+print_hide = ""
+print_max_len = 100
+
+[model.components.0.filters]   # 0 = every component
+forbid = ['(p.).*\1.*\1', '(f.).*\1.*\1', 'p\d\d', 'f\d\d']
+
+[model.components.1.marks]
+terminal = '\A[$ABY]+\Z'

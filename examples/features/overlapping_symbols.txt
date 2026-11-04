@@ -1,0 +1,23 @@
+# Symbols that overlap. The alphabet has a, b and also the symbol ab. Three conventions say which one is meant:
+# a run that is a symbol is that symbol (ab); a space breaks a run (a b is a followed by b); in re(...) a space is not a
+# separator, so (?:) is written between the symbols (a(?:)b). S rewrites to ab a b, and then, in the second step,
+# re(ab) -> T rewrites the symbol ab (the first symbol) and re(a(?:)b) -> S rewrites a followed by b (the last two symbols).
+# On ab a b the results are Ta b and ab S (with print_sep = " " a space is printed where two symbols would read as another one).  A run with several readings, such as abab, is an error: write ab ab or a b a b.
+
+[symbols]
+alphabet = "a b ab S T"
+
+[run]
+# print a space between a multi-character symbol and its neighbours, so that ab a b is not shown as abab
+print_sep = " "
+
+[axioms]
+1 = ["S"]
+
+[rules]
+# ab alone is the symbol ab; a b, with a space, are the two symbols a and b
+S -> ab a b
+# in a regular expression the run ab between operators is the symbol ab
+re(ab) -> T
+# (?:) separates the symbols: a, then b (not the symbol ab)
+re(a(?:)b) -> S
