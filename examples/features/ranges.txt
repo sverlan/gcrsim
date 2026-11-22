@@ -1,0 +1,39 @@
+# Ranges: one line that stands for several rules, symbols and axioms.
+#
+# A range is declared in [symbols.ranges] as first..last (inclusive). {:X} stands for its value, and {:X+1}, {:1-X}, {:2*X},
+# {:(X+1)%4} for an expression of it. A rule line that uses ranges is written once for every combination of their values (the range
+# that appears first in the line changes slowest), and the same range has the same value everywhere in the line. The generated rules are
+# ordinary rules: `gcrsim --describe` lists them, and a derivation shows which one was used, for example step[I=0,J=1].
+#
+# The symbols are D00 D01 D10 D11 (a two-bit index), C1 C2 C3 (a counter), S, a, b.
+
+[symbols]
+alphabet = "S a b C{:K} D{:I}{:J}"
+terminals = "a b"
+
+[symbols.ranges]
+I = "0..1"
+J = "0..1"
+K = "1..3"
+M = "1..2"
+
+# the class D is the four symbols D00 D01 D10 D11; it is an ordinary class, matched when the rule is applied
+[symbols.classes]
+D = "D{:I}{:J}"
+
+# an axiom with a range is one axiom for each value: S C1, S C2 and S C3
+[axioms]
+1 = ["S C{:K}"]
+
+[rules]
+# four insertion rules, ins(S,D00,) ... ins(S,D11,): insert a two-bit index after S
+ins(S,D{:I}{:J},)
+# a step of the Gray code: D00 -> D01 -> D11 -> D10 -> D00 (four rules, named step[I=0,J=0] ...)
+D{:I}{:J} -> D{:J}{:1-I}, 1; name:step
+# the counter goes up: C1 -> C2 and C2 -> C3 (M stops at 2, so M+1 is at most 3)
+C{:M} -> C{:M+1}, 1; name:count
+# the same index twice in a row disappears (four rules): D00D00, D01D01, ... but not D00D01
+D{:I}{:J}D{:I}{:J} -> , 1; name:cancel
+# for contrast, a class matches two independent members: any two D in a row, here D00D01 too
+{D}{D} -> a, 1; name:any_pair
+S -> a b, 1

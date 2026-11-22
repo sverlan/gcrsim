@@ -85,7 +85,7 @@ _TYPES = {
     "description": str,
 }
 _TABLE_KEYS = ("filters", "marks")  # the settings of each component, keyed by component number
-_MODEL_ONLY_KEYS = ("symbols", "classes", "alphabet", "terminals")  # they change how the model text is read, or declare its terminals
+_MODEL_ONLY_KEYS = ("symbols", "classes", "alphabet", "terminals", "ranges")  # they change how the model text is read, or declare its terminals
 _KNOWN_KEYS = _RUN_KEYS + ("components",) + _MODEL_ONLY_KEYS + ("filter_next",)
 
 

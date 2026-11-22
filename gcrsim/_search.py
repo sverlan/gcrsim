@@ -46,7 +46,16 @@ CONDITIONS = ("python_filter", "hash_history", "max_nonterminals", "max_len")
 # ---------------------------------------------------------------------------
 
 
-def declared_terminals(model: Model, override: Union[None, str, Sequence[str]] = None) -> List[str]:
+def header_terminals(model: Model, override: Union[None, str, Sequence[str]] = None) -> Optional[List[str]]:
+    """The terminals written in a jsonl header: those of ``override`` or of the model's ``terminals`` setting; None when none are
+    declared or the declaration is not valid (the header never fails on it)."""
+    try:
+        return declared_terminals(model, override)
+    except GcrsimError:
+        return None
+
+
+def declared_terminals(model: Model, override: Union[None, str, Sequence[str]] = None, *, operation: str = "search") -> List[str]:
     """The terminals as symbol names: ``override`` (a string of symbols separated by white space, or a list of names) if given,
     otherwise the ``terminals`` of the model's ``[symbols]``. Not declared, or a name that is not a symbol of the model: a
     ``GcrsimError``."""
@@ -57,7 +66,7 @@ def declared_terminals(model: Model, override: Union[None, str, Sequence[str]] =
         raw, where = override, "the terminals"
     if raw is None:
         raise GcrsimError("the terminals are not declared: set `terminals = \"a b\"` in the [symbols] section of the model, "
-                          "or give them with --terminals \"a b\" (search needs to know which symbols are terminals)")
+                          "or give them with --terminals \"a b\" (%s needs to know which symbols are terminals)" % operation)
     if isinstance(raw, str):
         names = raw.split()
     elif isinstance(raw, (list, tuple)) and all(isinstance(x, str) for x in raw):
@@ -95,7 +104,7 @@ def pruning_obstacle(model: Model, term_chars: str) -> Optional[str]:
     terms = set(term_chars)
     decode = model.lexicon.decode
     for r in sorted((r for rules in model.rules for r in rules), key=lambda r: (r.line, r.index)):  # in the order of the file
-        where = "rule %s (line %d)" % (r.name or r.notation, r.line)
+        where = "rule %s (line %d)" % (r.label, r.line)
         if isinstance(r, RegexRule):
             return "%s is a regular-expression rule: cannot be checked" % where
         if not isinstance(r, SubRule):

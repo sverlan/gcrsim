@@ -43,6 +43,12 @@ class Operation:
         self.summary = summary
 
 
+def _terms(model, override=None):
+    """The terminals of a jsonl header (None when not declared)."""
+    from ._search import header_terminals
+    return header_terminals(model, override)
+
+
 def operations() -> List[Operation]:
     """The table of the operations, the default first."""
     from . import cli
@@ -53,6 +59,10 @@ def operations() -> List[Operation]:
                   "check that the forms in FILE are a derivation of the model"),
         Operation("search", build_search_parser, run_search, "--search",
                   "search for the word WORD, breadth first, and print a derivation of it", "WORD"),
+        Operation("language", build_language_parser, run_language, "--language",
+                  "list the terminal words of a component (requires --max-word-len N)", ""),
+        Operation("describe", build_describe_parser, run_describe, "--describe",
+                  "describe the model (rules, insertion-deletion size, symbols, control) without running it", ""),
     ]
 
 
@@ -61,8 +71,9 @@ def _modes_note(table: Sequence[Operation]) -> str:
              "selected with --mode NAME or with the shorter option of the mode, written in full:"]
     for op in table:
         if op.name != DEFAULT_MODE:
-            short = " (or %s %s)" % (op.alias, op.operand) if op.alias else ""
-            parts.append("--mode %s MODEL %s%s: %s." % (op.name, op.operand, short, op.summary))
+            operand = " " + op.operand if op.operand else ""
+            short = " (or %s%s)" % (op.alias, operand) if op.alias else ""
+            parts.append("--mode %s MODEL%s%s: %s." % (op.name, operand, short, op.summary))
     parts.append("'gcrsim --mode NAME --help' shows the options of a mode.")
     return " ".join(parts)
 
@@ -171,7 +182,7 @@ def select(argv: Sequence[str], table: Optional[Sequence[Operation]] = None) -> 
             if alias in by_alias:
                 chosen.append(by_alias[alias])
                 selectors.append(alias)
-                i = i + 1 if "=" in tok else _after_value(args, i)  # the next token is its value
+                i = _after_value(args, i) if by_alias[alias].operand and "=" not in tok else i + 1
             elif tok.startswith("--") and "=" not in tok and (tok in value_opts or _abbreviates_value_option(tok, long_opts, value_opts)):
                 i = _after_value(args, i)
             else:
@@ -227,7 +238,8 @@ def run_replay(args: Any, out: Output, stdin: Any) -> int:
     warn_print_sep(model, settings.print_sep)
     forms = parse_forms(model, read_lines(path, stdin), args.component, where, settings.word_sep, checked=True)
     out.decode = None
-    jsonl = Jsonl(out.write, model.lexicon.decode, sys.stderr.write, plain, model.lexicon.tokens) if args.format == "jsonl" else None
+    jsonl = Jsonl(out.write, model.lexicon.decode, sys.stderr.write, plain, model.lexicon.tokens,
+                  terminals=_terms(model)) if args.format == "jsonl" else None
     quiet = args.quiet and jsonl is None
     if jsonl is not None:
         jsonl.header(__version__, "replay", args.input_file, settings.config_name, settings.description, file=where,
@@ -379,7 +391,8 @@ def _run_search(args: Any, out: Output, state: Dict[str, Any]) -> int:
     plain: Callable[[str], str] = cli.make_show(model, settings)
     if jsonl_format:
         out.decode = None
-        fmt: Any = Jsonl(out.write, model.lexicon.decode, sys.stderr.write, plain, model.lexicon.tokens)
+        fmt: Any = Jsonl(out.write, model.lexicon.decode, sys.stderr.write, plain, model.lexicon.tokens,
+                         terminals=_terms(model, args.terminals))
         say: Any = cli._LineSink(fmt.text)
         sys.stdout = say  # callbacks that print() end up in the messages
     else:
@@ -462,3 +475,165 @@ def run_search(args: Any, out: Output, stdin: Any) -> int:
             out.write(outcome_text(result, ""))
         out.flush()
         return result.status
+
+
+def build_language_parser() -> Any:
+    import argparse
+
+    p = argparse.ArgumentParser(
+        prog="gcrsim --mode language", allow_abbrev=False,
+        description="List the terminal words in a component of the configured model, up to a length in symbols. "
+                    "The terminals must be declared in the model or given with --terminals. "
+                    "Exit status 0 for a complete list, 3 for a partial list, 2 for an error.",
+        epilog="The show_detailed_application setting includes individual rule applications in the output.",
+    )
+    p.add_argument("input_file", nargs="?", metavar="MODEL", help="the model file")
+    p.add_argument("--language", action="store_true", help="select this mode")
+    p.add_argument("--max-word-len", required=True, type=int, metavar="N", help="maximum number of symbols in a listed word")
+    p.add_argument("--match", metavar="PATTERN", help="regex over symbols that must match the whole listed word")
+    p.add_argument("--component", type=int, default=1, metavar="N", help="component from which to list words (default 1)")
+    p.add_argument("--terminals", metavar="SYMBOLS", help="override the model's terminal symbols with white-space-separated names")
+    p.add_argument("--max-nonterminals", type=int, metavar="K", help="drop generated forms with more than K non-terminals")
+    p.add_argument("--reject-max-len", type=int, metavar="N", help="reject generated forms longer than N symbols (overrides reject_max_len)")
+    p.add_argument("--reject-strings", metavar="PATTERN",
+                   help="reject generated forms containing a regex match (overrides reject_strings; empty clears it)")
+    lim = p.add_argument_group("exploration limits")
+    lim.add_argument("--max-steps", type=int, metavar="N", help="explore at most N steps (0 includes only axioms)")
+    lim.add_argument("--max-time", metavar="T",
+                     help="elapsed time including sorting the words (seconds or a duration such as 1.5m)")
+    lim.add_argument("--max-step-candidates", type=int, metavar="N", help="candidates generated in one step")
+    lim.add_argument("--max-history", type=int, metavar="N", help="strings inserted into the history")
+    lim.add_argument("--max-step-accepted", type=int, metavar="N", help="strings accepted in one step, over all components")
+    p.add_argument("--config", metavar="FILE", action="append", default=[], help="configuration (.toml) over the model's settings")
+    p.add_argument("--python-filter", metavar="FILE.py", help="run FILE.py for its settings and keep function")
+    p.add_argument("--progress", action="store_true", help="write one summary line per step to stderr")
+    p.add_argument("--format", choices=("text", "jsonl"), default="text", help="write text (default) or JSON Lines")
+    p.add_argument("--version", action="version", version="gcrsim %s" % __version__)
+    return p
+
+
+def run_language(args: Any, out: Output, stdin: Any) -> int:
+    import time
+
+    from . import cli
+    from ._language import collect_language, listing_result
+    from .model import parse_model_file
+    from .settings import apply_settings
+    from .timelimit import describe
+
+    if args.reject_max_len is not None and args.reject_max_len < 0:
+        raise GcrsimError("--reject-max-len must be a nonnegative integer")
+    deadline = Deadline(parse_duration(args.max_time)) if args.max_time is not None else None
+    result = listing_result(args.max_word_len, args.match, args.component, args.max_steps, args.max_nonterminals,
+                            deadline, args.max_step_candidates, args.max_history, args.max_step_accepted)
+    jsonl = args.format == "jsonl"
+    fmt = None
+    header_written = False
+    try:
+        if not os.path.exists(args.input_file):
+            raise GcrsimError("cannot read the model %s: no such file" % args.input_file)
+        model = parse_model_file(args.input_file)
+        settings, loaded = cli.load_settings_captured(model, args, jsonl)
+        overrides = {key: getattr(args, key) for key in ("reject_max_len", "reject_strings") if getattr(args, key) is not None}
+        apply_settings(settings, overrides, "command line")
+        warn_print_sep(model, settings.print_sep)
+        show = cli.make_show(model, settings)
+        out.decode = None
+        if jsonl:
+            fmt = Jsonl(out.write, model.lexicon.decode, sys.stderr.write, show, model.lexicon.tokens,
+                        terminals=_terms(model, getattr(args, "terminals", None)))
+            fmt.header(__version__, "language", args.input_file, settings.config_name, settings.description,
+                       component=args.component)
+            header_written = True
+            say = cli._LineSink(fmt.text)
+            sys.stdout = say
+            fmt.text(loaded)
+        else:
+            cli._text_header(out, args.input_file, settings, model)
+            say = out
+        started = time.perf_counter()
+
+        def progress(sim: Any) -> None:
+            sys.stderr.write(cli._progress_line(sim, started))
+            sys.stderr.flush()
+
+        collect_language(model, settings, result, args.terminals, deadline, write=say.write,
+                         on_step=progress if args.progress else None)
+        say.flush()
+    except KeyboardInterrupt:
+        result.outcome, result.reason, result.detail = "partial", "interrupted", "interrupted"
+
+    if jsonl and not header_written:
+        fmt = fmt or Jsonl(out.write, lambda text: text, sys.stderr.write)
+        fmt.header(__version__, "language", args.input_file, "", component=args.component)
+    for word in result.words:
+        shown = show("".join(model.lexicon.encode(symbol) for symbol in word))
+        if fmt is not None:
+            fmt.record({"type": "word", "word": word, "word_string": shown})
+        else:
+            out.write(_shown(shown) + "\n")
+    if fmt is not None:
+        fmt.record({"type": "end", **result.to_dict()})
+    else:
+        counts = ", ".join("%d=%d" % pair for pair in result.counts.items()) or "(no words)"
+        out.write("Counts by symbol length %s\n" % counts)
+        out.write("Language listing is %s for component %d of the effective configured model, up to %d symbols. "
+                  "Last collected step %d.\n" % (result.outcome, result.component, args.max_word_len, result.steps))
+        out.write("  %s\n" % result.detail)
+        if args.match is not None:
+            out.write("Whole-word pattern %r\n" % args.match)
+        if result.bounds.get("terminals"):
+            out.write("Terminals %s\n" % " ".join(result.bounds["terminals"]))
+        for key, value in result.restrictions.items():
+            active = not value if key == "history" else value is not None if type(value) is int else bool(value)
+            if active:
+                out.write("  %s = %r\n" % (key, value))
+        for key in ("max_steps", "max_time", "max_step_candidates", "max_history", "max_step_accepted"):
+            value = result.bounds[key]
+            if value is not None:
+                out.write("  %s = %s\n" % (key, describe(value) if key == "max_time" else value))
+    out.flush()
+    return result.status
+
+
+def build_describe_parser() -> Any:
+    import argparse
+
+    p = argparse.ArgumentParser(
+        prog="gcrsim --mode describe", allow_abbrev=False,
+        description="Describe a model without running it: the number of rules by kind, the insertion-deletion size "
+                    "(n,m,m';p,q,q'), the symbols and their roles, and the rules that lead from one component to another. "
+                    "Exit status 0, 2 for an error.",
+    )
+    p.add_argument("input_file", nargs="?", metavar="MODEL", help="the model file")
+    p.add_argument("--describe", action="store_true", help="select this mode")
+    p.add_argument("--format", choices=("text", "jsonl"), default="text", help="write text (default) or JSON Lines")
+    p.add_argument("--config", metavar="FILE", action="append", default=[], help="configuration (.toml) over the model's settings")
+    p.add_argument("--python-filter", metavar="FILE.py", help="run FILE.py (it executes code!) for its settings")
+    p.add_argument("--version", action="version", version="gcrsim %s" % __version__)
+    return p
+
+
+def run_describe(args: Any, out: Output, stdin: Any) -> int:
+    from . import cli
+    from ._describe import describe
+    from .model import parse_model_file
+
+    if not os.path.exists(args.input_file):
+        raise GcrsimError("cannot read the model %s: no such file" % args.input_file)
+    model = parse_model_file(args.input_file)
+    jsonl = args.format == "jsonl"
+    settings, loaded = cli.load_settings_captured(model, args, jsonl)
+    result = describe(model)
+    if jsonl:
+        out.decode = None
+        fmt = Jsonl(out.write, model.lexicon.decode, sys.stderr.write, terminals=_terms(model))
+        fmt.header(__version__, "describe", args.input_file, settings.config_name, settings.description)
+        fmt.text(loaded)
+        fmt.record({"type": "description", **result.to_dict()})
+        fmt.record({"type": "end", "status": 0, "steps": 0})
+    else:
+        result.model = args.input_file
+        out.write(result.text())
+    out.flush()
+    return 0

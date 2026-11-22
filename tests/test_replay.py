@@ -342,7 +342,7 @@ def test_jsonl_output(tmp_path):
     step = rows[1]
     assert step == {"type": "derivation_step", "step": 1, "lines": [1, 2], "component": 1, "target": 2, "before": ["S"],
                     "before_string": "S", "after": ["a", "S"], "after_string": "aS",
-                    "rule": {"line": 5, "kind": "plain", "notation": "S->a S,2", "name": None, "u": None, "x": ["S"],
+                    "rule": {"line": 5, "kind": "plain", "notation": "S->a S,2", "name": None, "bindings": None, "u": None, "x": ["S"],
                              "y": ["a", "S"], "v": None}, "start": 0, "end": 1, "removed": ["S"], "inserted": ["a", "S"], "ways": 1}
     end = rows[3]
     assert (end["status"], end["ok"], end["steps"]) == (4, False, 2)

@@ -240,7 +240,7 @@ def test_to_dict_is_json_ready_and_counts_components_from_one():
     assert [d["step"] for d in data] == [1, 2, 3, 4]
     assert [(d["component"], d["target"]) for d in data] == [(1, 2), (2, 3), (3, 4), (4, 5)]
     assert set(data[0]) == {"step", "component", "target", "before", "after", "rule", "start", "end", "removed", "inserted"}
-    assert set(data[0]["rule"]) == {"line", "kind", "notation", "name", "u", "x", "y", "v"}
+    assert set(data[0]["rule"]) == {"line", "kind", "notation", "name", "bindings", "u", "x", "y", "v"}
 
 
 def test_old_attributes_still_work():
@@ -292,7 +292,7 @@ def test_jsonl_trace_objects(tmp_path):
     assert steps[0]["before"] == ["S"] and steps[0]["after"] == ["F1", "S"]
     assert steps[-1]["after"] == ["F1", "a10"] and steps[-1]["rule"]["kind"] == "plain"
     assert steps[1]["rule"] == {"line": 13, "kind": "plain", "notation": "2,S->S a10,1", "u": None, "x": ["S"], "y": ["S", "a10"],
-                                "v": None, "name": None}
+                                "v": None, "name": None, "bindings": None}
     assert (steps[0]["component"], steps[0]["target"]) == (1, 2)
 
 
@@ -560,7 +560,7 @@ def test_rule_operands_have_the_names_of_the_model_syntax(tmp_path):
                             (dele, "del", (["X"], ["p1"], None, ["{P}"])), (send, "send", (None,) * 4), (re_, "re", (None,) * 4)):
         rule = step.to_dict()["rule"]
         assert rule["kind"] == kind and (rule["u"], rule["x"], rule["y"], rule["v"]) == ops, kind
-        assert set(rule) == {"line", "kind", "notation", "name", "u", "x", "y", "v"} and rule["name"] is None
+        assert set(rule) == {"line", "kind", "notation", "name", "bindings", "u", "x", "y", "v"} and rule["name"] is None
 
 
 # -- second review ---------------------------------------------------------------------------------------

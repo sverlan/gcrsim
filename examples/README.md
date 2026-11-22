@@ -3,7 +3,7 @@
 * [`cookbook/`](cookbook/) — one small model for each kind of grammar, with the grammar in the usual notation in the header comment.
   Explained in [docs/grammars.md](../docs/grammars.md); checked by `tests/test_cookbook.py`.
 * [`features/`](features/) — small models that show one feature of the language, not a kind of grammar: marks that check a grammar
-  ([docs/marks-and-derivations.md](../docs/marks-and-derivations.md)), multi-character symbols and classes, and overlapping symbols
+  ([docs/marks-and-derivations.md](../docs/marks-and-derivations.md)), multi-character symbols and classes, overlapping symbols, and ranges ([`features/ranges.txt`](features/ranges.txt) with indexed symbols and rules, [`features/ranges_components.txt`](features/ranges_components.txt) with the component numbers of a chain)
   ([docs/model-syntax.md](../docs/model-syntax.md)). Checked by `tests/test_cookbook.py`.
 * [`python/`](python/) — models that come with a Python file (a function in a filter or in a mark, or the filter function `keep`):
   checking against an infinite language, a valence grammar with a gate (two ways), expected words read from a file, marking what a

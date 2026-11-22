@@ -35,7 +35,7 @@ class DerivationStep:
     The rule is also described by separate fields: ``rule_line``, ``rule_kind`` (``plain``, ``ins``, ``del``, ``sub``, ``send``
     or ``re``), ``rule_notation``, the operands ``u``, ``x``, ``y``, ``v`` as lists of symbols (None where the kind of rule does not
     have the operand; a class is written ``{NAME}`` and ``{start}``, ``{end}``, ``{any}`` stand for themselves) and ``name``
-    (the name of the rule, or None). Components count from 0 in the attributes and from 1 in ``to_dict``.
+    (the name of the rule, or None) and ``bindings`` (the values of the ranges when the rule was made from a line with ranges, else None). Components count from 0 in the attributes and from 1 in ``to_dict``.
 
     ``Simulator.trace`` returns real names in ``source`` and ``result``; ``Simulator._trace_many``, used by the command line,
     leaves the internal strings there."""
@@ -120,6 +120,11 @@ class DerivationStep:
     @property
     def name(self) -> Optional[str]:
         return self.provenance["name"]
+
+    @property
+    def bindings(self) -> Optional[Dict[str, int]]:
+        """The values of the ranges of the rule (a rule made from a line with ranges), or None."""
+        return self.provenance["bindings"]
 
     def to_dict(self) -> Dict[str, Any]:
         """The step as JSON-ready data (the ``derivation_step`` object of ``--format jsonl``): ``step``,

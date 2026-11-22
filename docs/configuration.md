@@ -51,6 +51,7 @@ declares what the symbols are:
 | Setting | Default | Meaning |
 | --- | --- | --- |
 | `terminals` | none | the terminal symbols, a string of symbols separated by white space (`terminals = "a b"`). Each must be a symbol of the model, and the value cannot be empty. The search ([cli.md](cli.md#search)) needs it (or `--terminals`) and uses it to prune; a run and a replay ignore it. Like the rest of `[symbols]` it belongs to the model: a `--config` file cannot hold it |
+| `[symbols.ranges]` | none | named integer ranges, `X = "1..3"`, used as `{:X}` in the symbols, axioms and rules of the model ([model-syntax.md](model-syntax.md#ranges)). Like the rest of `[symbols]` it belongs to the model |
 
 ### In `[model]`
 
@@ -61,6 +62,7 @@ declares what the symbols are:
 | `derivation` | `"any"` | the kind of derivation; only `"any"` is supported |
 | `reject_strings` | none | a regular expression; a string in which it is found is rejected |
 | `reject_max_len` | no limit | a longer string is rejected |
+| `max_expanded_rules` | `100000` | the largest number of rules that the ranges of the model may generate ([model-syntax.md](model-syntax.md#ranges)); a model that goes over it is an error. It is read when the model is loaded, so it belongs to the model and a `--config` file cannot hold it |
 | `[model.components.N.filters]` | none | conditions on the strings of component `N` ([below](#the-filters-of-a-component)) |
 | `[model.components.N.marks]` | none | marks for component `N` ([marks-and-derivations.md](marks-and-derivations.md)) |
 

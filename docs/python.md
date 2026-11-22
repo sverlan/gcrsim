@@ -173,7 +173,10 @@ starts with the file and the line. A `Model` has:
 | `config` | the settings that the model file carries |
 
 A rule has `line`, `notation` (the rule in the notation of the model, without the white space it does not need), `name` (its name, or
-`None`), `source` and `target` (components, from 0), and `expand(s)`, the list of the strings it produces from `s` (as internal strings).
+`None`), `bindings` (the values of its ranges as a dictionary `{"X": 1}`, or `None`: [model-syntax.md](model-syntax.md#ranges)),
+`source_notation` (the line as written, with its `{:X}` references; `None` unless the rule was made from a line with ranges) and
+`label` (its name, or its notation, followed by the bindings: `grow[X=1]`), `source` and `target` (components, from 0), and
+`expand(s)`, the list of the strings it produces from `s` (as internal strings).
 `gcrsim.convert_model(perl_text)` returns `(new_text, warnings)` for a model of the Perl simulator.
 
 ### The settings
@@ -222,7 +225,7 @@ A `DerivationStep` describes one rewriting step of component `source_component` 
   `before[:start] + inserted + before[end:] == after`.
 * `rule_line`, `rule_kind` (`plain`, `ins`, `del`, `sub`, `send` or `re`), `rule_notation`, the operands `u`, `x`, `y`, `v` as lists of symbols
   (`x` is replaced by `y` between `u` and `v`, as in [model-syntax.md](model-syntax.md); `None` where the kind of rule has no such operand;
-  `{start}`, `{end}`, `{any}` and classes `{NAME}` stand for themselves), and `name` (the name of the rule, or `None`).
+  `{start}`, `{end}`, `{any}` and classes `{NAME}` stand for themselves), `name` (the name of the rule, or `None`) and `bindings` (the values of the ranges of the rule, or `None`).
 * `to_dict()`: the step as JSON-ready data, the `derivation_step` object of `--format jsonl` without its `type` and without the `_string`
   fields (components from 1).
 
@@ -298,6 +301,33 @@ else:
 | `conditional` | what makes a negative answer hold only under an assumption: `python_filter`, `hash_history`, `max_nonterminals`, `max_len` |
 | `to_dict()` | the fields of the `end` object of `--format jsonl` |
 
+### Language listing
+
+`gcrsim.language(model, max_len, pattern=None, *, component=1, terminals=None, max_steps=None, max_nonterminals=None,
+max_time=None, keep=None, settings=None, max_step_candidates=None, max_history=None, max_step_accepted=None)` takes a `Model`
+or a model file path and returns a `LanguageResult`. `words` contains sorted lists of symbols and `counts` maps symbol lengths
+to counts. `outcome` is `complete` or `partial`. `reason` and `bounds` give the basis for that result. `status` is the
+corresponding CLI exit status. See [Language listing](cli.md#language-listing) for how the filters and bounds apply.
+
+```python
+result = gcrsim.language("model.txt", 8, pattern="a+b+")
+print(result.outcome, result.words)
+```
+
+### describe
+
+`gcrsim.describe(model)` describes a model without running it; `model` is a `Model` or the path of a model file. It returns a
+`Description` with the attributes `rules` (`count`, `by_kind`, `with_conditions`), `size` (`insdel`, `other_kinds`, `ins`, `del`),
+`components` (a list with the rules, kinds, size, `targets` and number of axioms of each component), `symbols` (`count`,
+`declared`, `terminals`, `roles`, `roles_exact`) and `notes`; `to_dict()` gives them as one dictionary (the `description` object
+of `--format jsonl`) and `text()` the text of `--describe`.
+
+```python
+import gcrsim
+d = gcrsim.describe("examples/cookbook/02_insdel.txt")
+d.size["ins"]            # {'n': 2, 'm': 1, 'm_right': 1}
+```
+
 ### Measures of a derivation
 
 `gcrsim.measure(derivation, model=None, terminals=None, first=None, component=1)` returns the `Measures` of a derivation, a list of
@@ -310,7 +340,7 @@ or a list of names; `None`: those that `model`, a `Model` or a model file, decla
 | --- | --- |
 | `steps` | the number of steps |
 | `max_len`, `max_len_step` | the largest number of symbols of a form, the first form included, and the first step where it occurs (0 is the first form) |
-| `rules` | a list of dictionaries `line`, `component` (from 1), `notation`, `name`, `kind`, `count`: how many times each rule is used, in the order of the lines |
+| `rules` | a list of dictionaries `line`, `component` (from 1), `notation`, `name`, `kind`, `bindings`, `count` (and `source_notation` for a rule made from a line with ranges): how many times each rule is used, in the order of the lines |
 | `created`, `deleted` | the symbols inserted and removed over all steps |
 | `max_nonterminals`, `max_nonterminals_step` | the largest number of symbols that are not terminals over the forms (the first form included), and the first step where it occurs; `None` without terminals |
 | `components` | a list of dictionaries `component` (from 1) and `forms`: the forms in each component along the derivation |

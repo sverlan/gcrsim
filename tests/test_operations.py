@@ -92,7 +92,9 @@ def test_abbreviations_are_not_selectors(argv):
 
 def test_the_table_has_one_entry_per_operation():
     table = operations.operations()
-    assert [(op.name, op.alias) for op in table] == [("run", None), ("replay", "--replay"), ("search", "--search")]
+    assert [(op.name, op.alias) for op in table] == [
+        ("run", None), ("replay", "--replay"), ("search", "--search"), ("language", "--language"), ("describe", "--describe"),
+    ]
 
 
 # ---------------------------------------------------------------------------

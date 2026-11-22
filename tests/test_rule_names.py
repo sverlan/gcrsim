@@ -227,7 +227,7 @@ def test_jsonl_rule_object(files, capsys):
     path = files("m.txt", NAMED)
     status, out, _ = run(capsys, path, "4", "--trace", "aabb", "--format", "jsonl")
     steps = [o for o in objs(out) if o["type"] == "derivation_step"]
-    assert set(steps[0]["rule"]) == {"line", "kind", "notation", "name", "u", "x", "y", "v"}
+    assert set(steps[0]["rule"]) == {"line", "kind", "notation", "name", "bindings", "u", "x", "y", "v"}
     assert steps[0]["rule"]["name"] == "grow" and steps[0]["rule"]["notation"] == "S->a S b,1"
     assert steps[1]["rule"]["name"] is None
 

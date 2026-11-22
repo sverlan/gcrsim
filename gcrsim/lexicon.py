@@ -119,7 +119,8 @@ class Lexicon:
                     "the symbol %r cannot be a lexeme: it contains a regular-expression character, a comma, whitespace or '->'" % lex
                 )
         self.classes: Dict[str, List[str]] = {k: list(v) for k, v in (classes or {}).items()}
-        self.alphabet: Optional[Set[str]] = set(alphabet) if alphabet is not None else None
+        self.alphabet_order = tuple(dict.fromkeys(alphabet)) if alphabet is not None else None
+        self.alphabet: Optional[Set[str]] = set(self.alphabet_order) if self.alphabet_order is not None else None
         self.lexemes: List[str] = found
         self.dollar_used = True  # set False by the parser when the model never writes '$': a '$' in a pattern is then a trap
         self._code: Dict[str, str] = {}

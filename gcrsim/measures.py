@@ -11,6 +11,7 @@ import os
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 from .errors import GcrsimError
+from .ranges import binding_suffix
 
 
 class Measures:
@@ -18,8 +19,8 @@ class Measures:
 
     ``steps`` is the number of steps. ``max_len`` is the largest number of symbols of a form, the first form included, and
     ``max_len_step`` the first step at which it occurs (0 is the first form). ``rules`` lists how many times each rule is used, as
-    dictionaries ``line``, ``component`` (the component the rule rewrites from, counted from 1), ``notation``, ``name``, ``kind`` and
-    ``count``, in the order of the lines. ``created`` and ``deleted`` are the numbers of symbols inserted and removed over all steps.
+    dictionaries ``line``, ``component`` (the component the rule rewrites from, counted from 1), ``notation``, ``name``, ``kind``, ``bindings`` (the values of the ranges of a rule made from a line with ranges, else None;
+    such a rule also has ``source_notation``) and ``count``, in the order of the lines. ``created`` and ``deleted`` are the numbers of symbols inserted and removed over all steps.
     ``max_nonterminals`` and ``max_nonterminals_step`` are the largest number of symbols that are not declared terminals over the
     forms (the first form included) and the first step where it occurs; both are None when no terminals are declared.
     ``components`` lists, for every component that occurs, the number of forms that the derivation has in it (the first form counts
@@ -78,7 +79,7 @@ def measure(first: str, steps: Sequence[Any], terminals: Optional[Iterable[str]]
     best_nt_step = 0
     created = deleted = 0
     forms: Dict[int, int] = {first_component: 1}
-    used: Dict[Tuple[int, int], List[Any]] = {}
+    used: Dict[Tuple[int, int, int], List[Any]] = {}
     for k, st in enumerate(steps, 1):
         after = st.internal_result
         if len(after) > max_len:
@@ -91,16 +92,20 @@ def measure(first: str, steps: Sequence[Any], terminals: Optional[Iterable[str]]
         created += len(rec["inserted"])
         deleted += len(rec["removed"])
         forms[st.target_component] = forms.get(st.target_component, 0) + 1
-        entry = used.get((st.rule.line, st.source_component))
+        key = (st.rule.line, st.source_component, st.rule.index)
+        entry = used.get(key)
         if entry is None:
-            used[(st.rule.line, st.source_component)] = [st, 1]
+            used[key] = [st, 1]
         else:
             entry[1] += 1
     rules = []
-    for (line, comp), (st, count) in sorted(used.items()):
+    for (line, comp, _), (st, count) in sorted(used.items(), key=lambda kv: kv[0]):
         prov = st.provenance
-        rules.append({"line": line, "component": comp + 1, "notation": prov["notation"], "name": prov["name"], "kind": prov["kind"],
-                      "count": count})
+        entry = {"line": line, "component": comp + 1, "notation": prov["notation"], "name": prov["name"], "kind": prov["kind"],
+                 "bindings": prov["bindings"], "count": count}
+        if "source_notation" in prov:
+            entry["source_notation"] = prov["source_notation"]
+        rules.append(entry)
     components = [{"component": c + 1, "forms": n} for c, n in sorted(forms.items())]
     return Measures(len(steps), max_len, max_len_step, rules, created, deleted, best_nt, best_nt_step if term is not None else None,
                     components)
@@ -117,7 +122,7 @@ def format_measures(m: Measures, indent: str = "    ") -> str:
         parts.append("at most %s (step %d)" % (_plural(m.max_nonterminals, "non-terminal"), m.max_nonterminals_step))
     parts.append("%s created, %d deleted" % (_plural(m.created, "symbol"), m.deleted))
     several = len({r["component"] for r in m.rules}) > 1
-    labels = [r["name"] or r["notation"] for r in m.rules]
+    labels = [(r["name"] or r.get("source_notation") or r["notation"]) + binding_suffix(r.get("bindings")) for r in m.rules]
     rules = ", ".join("%s (line %d)%s x%d" % (lab, r["line"],
                                       " (component %d)" % r["component"] if several else "", r["count"])
                       for lab, r in zip(labels, m.rules)) or "none"

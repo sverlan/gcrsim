@@ -16,10 +16,11 @@ string boundaries ``{start}`` / ``{end}`` or ``{any}``); no regular expression i
 from __future__ import annotations
 
 import re
-from typing import Any, Callable, Iterator, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Iterator, List, Optional, Sequence, Tuple, Union
 from .errors import ModelError
 from .lexicon import SEP, EMPTY, Lexicon
 from .pattern import compile_pattern
+from .ranges import binding_suffix
 
 Edit = Tuple[int, int, str]
 
@@ -144,6 +145,8 @@ class Rule:
         "expand",
         "kind",
         "name",
+        "bindings",
+        "source_notation",
     )
 
     default_kind = "sub"
@@ -176,6 +179,16 @@ class Rule:
         self.guarded = bool(self.permit or self.forbid)
         self.kind = self.default_kind  # plain, ins, del, sub, send or re (the parser sets it for the form that was written)
         self.name: Optional[str] = None  # the optional name of the rule (the clause ``;name:NAME``)
+        self.bindings: Optional[Dict[str, int]] = None  # a rule made from a line with ranges: the values of its ranges
+        self.source_notation: Optional[str] = None  # ... and the line as written (with the range syntax)
+
+    @property
+    def label(self) -> str:
+        """The short name of the rule: its name, or its notation; for a rule made from a line with ranges the same followed by the
+        bindings (``grow[X=1]``, ``ins(x,D{:I}{:J},)[I=0,J=1]``: the notation of the line as written)."""
+        if self.bindings is None:
+            return self.name or self.notation
+        return (self.name or self.source_notation or self.notation) + binding_suffix(self.bindings)
 
     def add_any(self, words: Sequence[str], lexicon: Lexicon) -> None:
         """Add the ``permit-any`` condition: at least one of ``words`` occurs."""
@@ -238,13 +251,21 @@ class Rule:
         return {"u": None, "x": None, "y": None, "v": None}
 
     def provenance(self, lexicon: Lexicon) -> dict:
-        """Where the rule comes from, JSON-ready: ``line``, ``kind``, ``notation``, the operands ``u``, ``x``, ``y``, ``v`` and ``name``.
+        """Where the rule comes from, JSON-ready: ``line``, ``kind``, ``notation``, the operands ``u``, ``x``, ``y``, ``v``, ``name`` and ``bindings`` (the values of the ranges, or None;
+        a rule made from a line with ranges also has ``source_notation``, the line as written).
         A class in an operand is written ``{NAME}``, and ``{start}``, ``{end}``, ``{any}`` stand for themselves."""
-        return {"line": self.line, "kind": self.kind, "notation": self.notation, "name": self.name, **self.operands(lexicon)}
+        extra = {} if self.source_notation is None else {"source_notation": self.source_notation}
+        return {"line": self.line, "kind": self.kind, "notation": self.notation, **extra, "name": self.name,
+                "bindings": None if self.bindings is None else dict(self.bindings), **self.operands(lexicon)}
 
     def describe(self) -> str:
-        """``rule at line N: NOTATION``, or ``rule NAME at line N: NOTATION`` for a named rule."""
-        return "rule %sat line %d: %s" % ("" if self.name is None else self.name + " ", self.line, self.notation)
+        """``rule at line N: NOTATION``, or ``rule NAME at line N: NOTATION`` for a named rule; a rule made from a line with ranges
+        has its bindings after the name (``rule grow[X=1] at line N: ...``) or, without a name, after the line as written."""
+        if self.name is not None:
+            return "rule %s%s at line %d: %s" % (self.name, binding_suffix(self.bindings), self.line, self.notation)
+        if self.bindings is not None:
+            return "rule at line %d: %s%s" % (self.line, self.source_notation, binding_suffix(self.bindings))
+        return "rule at line %d: %s" % (self.line, self.notation)
 
     def __repr__(self) -> str:
         return "%s(line %d: %s)" % (type(self).__name__, self.line, self.notation)

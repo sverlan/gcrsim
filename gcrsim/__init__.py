@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from ._meta import __version__
 from .cli import main
+from ._describe import Description, describe
+from ._language import LanguageResult, language
 from .convert import convert_model
 from .engine import Context, DerivationStep, Mark, Simulator, format_derivation
 from .errors import CallbackError, ConfigError, GcrsimError, LimitReached, ModelError, TraceError
@@ -39,6 +41,10 @@ __all__ = [
     "replay_file",
     "search",
     "SearchResult",
+    "language",
+    "describe",
+    "Description",
+    "LanguageResult",
     "parse_model",
     "parse_model_file",
     "load_config",

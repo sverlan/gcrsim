@@ -28,6 +28,11 @@ from .wordsep import check_word_sep, warn_print_sep
 # ---------------------------------------------------------------------------
 
 
+def _header_terminals(model):
+    from ._search import header_terminals
+    return header_terminals(model)
+
+
 def _build_parser() -> "argparse.ArgumentParser":
     import argparse
 
@@ -345,7 +350,8 @@ def run_cli(args: "argparse.Namespace", out: Output, stdin: Any) -> int:
         fmt: Any = None
     else:  # csv, jsonl: the data are written already decoded; what is not data goes to the format
         out.decode = None
-        fmt = (listing.Jsonl(out.write, model.lexicon.decode, sys.stderr.write, show, model.lexicon.tokens) if args.format == "jsonl"
+        fmt = (listing.Jsonl(out.write, model.lexicon.decode, sys.stderr.write, show, model.lexicon.tokens,
+                             terminals=_header_terminals(model)) if args.format == "jsonl"
                else listing.Csv(out.write, model.lexicon.decode, sys.stderr.write, sep, show=show))
         say = _LineSink(fmt.text)
         sys.stdout = say  # callbacks that print() end up in the same place as the marks

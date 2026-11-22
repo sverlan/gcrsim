@@ -6,7 +6,7 @@ gcrsim MODEL [STEPS] [options]
 
 runs the model in the file `MODEL` for `STEPS` steps and lists the strings of every step. From a checkout, `python -m gcrsim` does the
 same. `gcrsim --help` lists all the options, and this page explains them, grouped by purpose. `gcrsim` does one operation at a time, chosen with `--mode`: `run` (the default, described on this page), `replay`
-([Replay](#replay)) and `search` ([Search](#search)). Two other programs are installed with
+([Replay](#replay)), `search` ([Search](#search)), `language` ([Language listing](#language-listing)) and `describe` ([Describe](#describe)). Two other programs are installed with
 the package: `gcrsim-convert`, which translates a model of the Perl simulator ([migration.md](migration.md)), and `gcrsim-retention`,
 which reads a file written with `--retain-file` ([Retained steps](#retained-steps)).
 
@@ -14,9 +14,9 @@ Exit statuses:
 
 | Status | Meaning |
 | --- | --- |
-| 0 | the run completed; a search found the word |
+| 0 | the run completed, a search found the word, or a language listing completed |
 | 2 | an error in the model, a setting or the arguments (the message names the file and the line) |
-| 3 | a limit stopped the run ([Limits](#limits)), the time limit included; a search that a limit, the time limit or an interruption stopped before it could answer |
+| 3 | a limit stopped the run ([Limits](#limits)), the time limit included; a search that a limit, the time limit or an interruption stopped before it could answer; a language listing is partial |
 | 4 | `--fail-on-mark` found a mark with a failing label, or a replay found a step that is not legal |
 | 5 | `--cross-check` found a difference between the engine and the reference interpreter |
 | 6 | a search covered everything within its bounds and did not find the word ([Search](#search)) |
@@ -31,10 +31,13 @@ Exit statuses:
 | `run` | `gcrsim MODEL STEPS` | runs the model and lists the strings of every step (the default) |
 | `replay` | `gcrsim --mode replay MODEL FILE` or `gcrsim MODEL --replay FILE` | checks that the forms in `FILE` are a derivation of the model |
 | `search` | `gcrsim --mode search MODEL WORD` or `gcrsim MODEL --search WORD` | searches for `WORD` breadth first and prints a derivation of it |
+| `language` | `gcrsim --mode language MODEL --max-word-len N` or `gcrsim MODEL --language --max-word-len N` | lists accepted terminal words up to a length |
+| `describe` | `gcrsim --mode describe MODEL` or `gcrsim MODEL --describe` | describes the model (rules, insertion-deletion size, symbols, control graph) without running it |
 
 `--mode run` is the same as no selector. The selector may stand before or after the model and the other options, as `--mode NAME`
-or `--mode=NAME`; it must be written in full (`--mode`, `--replay` and `--search`, not `--mod`, `--rep` or `--sea`). `--replay FILE` and
-`--search WORD` are shorter ways to write `--mode replay` and `--mode search` with their operand. Only one selector may be given, even if two of them agree. A selector after the terminator `--`,
+or `--mode=NAME`. Use the full spelling of the selector. `--replay FILE` and `--search WORD` are shorter ways to write
+`--mode replay` and `--mode search` with their operand. `--language` selects `--mode language` and `--describe` selects `--mode describe`. Only one selector may be given,
+even if two of them agree. A selector after the terminator `--`,
 or an option value that looks like one (`--trace --mode`), is not a selector.
 
 Each mode accepts only its own options: `gcrsim MODEL FILE --mode replay --trace S` is an error, because `--trace` belongs to `run`.
@@ -170,18 +173,20 @@ word is `""`).
 
 | Object | Fields |
 | --- | --- |
-| `header` | `version`, `mode` (`run`, `replay` or `search`), `model`, `configuration`, `description`; a replay adds `file` and `fragment`; a search adds `word`, `word_string` and `component` |
+| `header` | `version`, `mode` (`run`, `replay`, `search`, `language` or `describe`), `model`, `configuration`, `description`, `terminals` (the declared terminals, or `null`; a search and a language listing give those of `--terminals` when it is used); a replay adds `file` and `fragment`; a search adds `word`, `word_string` and `component`; a language listing adds `component` |
+| `description` | (describe) `rules` (`count`, `by_kind`, `with_conditions`), `size` (`insdel`, `other_kinds`, `ins` {`n`, `m`, `m_right`} or `null`, `del` {`p`, `q`, `q_right`} or `null`), `components` (per component: `component`, `rules`, `by_kind`, `size`, `targets`, `axioms`), `symbols` (`count`, `declared`, `terminals`, `roles`, `roles_exact`), `notes`: `ranges` (the declared ranges, `{"X": [1, 3]}`) and `expansions` (the rule lines that use ranges: a list of `line`, `notation` (as written), `name`, `ranges` and `rules`, the generated rules with `notation`, `bindings`, `component` and `target`; empty for a model without ranges) |
 | `step` | `step`; `components`: for each component, its words as symbol arrays; `components_string`: the same with strings |
 | `derivation` | a derivation asked for with `--trace` or `--trace-marks`, or the derivation that a search found: `word`, `word_string`, `component`, `found_at` (the step), `steps` (their number), `measures` and, for a mark, `mark` (the label); it is followed by its `derivation_step` objects |
 | `derivation_step` | `step`, `component`, `target`, `before`, `before_string`, `after`, `after_string`, `rule`, `start`, `end`, `removed`, `inserted`; a replay adds `lines` and `ways` |
-| `measures` (inside `derivation` and `end`) | `steps`; `max_len` and `max_len_step` (the longest form, and the first step where it occurs; 0 is the first form); `rules` (a list of `line`, `component`, `notation`, `name`, `kind`, `count`, in the order of the lines); `created` and `deleted` (symbols inserted and removed over all steps); `max_nonterminals` and `max_nonterminals_step` (`null` when no terminals are declared); `components` (a list of `component` and `forms`: the forms the derivation has in each component, the first form included) |
+| `measures` (inside `derivation` and `end`) | `steps`; `max_len` and `max_len_step` (the longest form, and the first step where it occurs; 0 is the first form); `rules` (a list of `line`, `component`, `notation`, `name`, `kind`, `bindings`, `count`, in the order of the lines; a rule made from a line with ranges is listed once for each set of values and also has `source_notation`); `created` and `deleted` (symbols inserted and removed over all steps); `max_nonterminals` and `max_nonterminals_step` (`null` when no terminals are declared); `components` (a list of `component` and `forms`: the forms the derivation has in each component, the first form included) |
 | `message` | `text`: the text of a mark, a callback or a note; what a configuration file prints while it loads is a `message` object right after the header |
 | `end` | `status` and `steps`; a replay adds `ok` and `failure` (`null`, or `line`, `step`, `component`, `target`, `before`, `before_string`, `after`, `after_string`, `reason`; `after` and `after_string` are `null` when the first form is not an axiom), and `reason` `time` when the time limit stopped it (`ok` is then false and `failure` `null`); a search adds `outcome` (`found`, `not_found`, `inconclusive`), `reason`, `limit` (the name of the limit that stopped it, or `null`), `explored`, `bounds` (`max_steps`, `max_nonterminals`, `max_len`, `max_time` in seconds; `null` when not set), `pruning` (`on` and `reason`, `null` when it was on) and `conditional` (a list of `python_filter`, `hash_history`, `max_nonterminals`, `max_len`); there `steps` is the last complete step, or the step at which the word appeared. A replay also has `measures` (those of the steps checked; `null` when the first form is not an axiom) and `measures_partial` (true when the replay stopped before its last form: the measures then are those of the legal steps before the failure) |
 
 In a `derivation_step`, `start` and `end` delimit the replaced part of `before` in symbols; `removed` are the symbols that were replaced and
 `inserted` the ones that took their place. The `rule` object has `line`, `kind` (`plain`, `ins`, `del`, `sub`, `send` or `re`), `notation`
-(the rule in the notation of the model, without the white space it does not need), `name` (the name of the rule, or `null`) and the
-operands `u`, `x`, `y`, `v` as arrays of symbols, named as in
+(the rule in the notation of the model, without the white space it does not need), `name` (the name of the rule, or `null`), `bindings` (the values of the ranges of a rule made from a line with ranges, an object such
+as `{"X": 1}`, or `null`; such a rule also has `source_notation`, the line as written with its `{:X}` references, while `notation` is
+the generated rule) and the operands `u`, `x`, `y`, `v` as arrays of symbols, named as in
 [model-syntax.md](model-syntax.md): `sub(u,x,y,v)` replaces `x` by `y`; a plain rule `x -> y` has `x` and `y`; `ins(u,y,v)` has `u`, `y`
 and `v`; `del(u,x,v)` has `u`, `x` and `v`; `send` and `re` have none. An operand that the kind of rule does not have is `null`; a class is
 written `{NAME}`, and `{start}`, `{end}` and `{any}` stand for themselves.
@@ -189,7 +194,7 @@ written `{NAME}`, and `{start}`, `{end}` and `{any}` stand for themselves.
 ```
 {"type": "derivation", "word": ["a", "S", "b"], "word_string": "aSb", "component": 1, "found_at": 1, "steps": 1}
 {"type": "derivation_step", "step": 1, "component": 1, "target": 1, "before": ["S"], "before_string": "S", "after": ["a", "S", "b"], "after_string": "aSb",
- "rule": {"line": 12, "kind": "plain", "notation": "S->aSb", "name": null, "u": null, "x": ["S"], "y": ["a", "S", "b"], "v": null},
+ "rule": {"line": 12, "kind": "plain", "notation": "S->aSb", "name": null, "bindings": null, "u": null, "x": ["S"], "y": ["a", "S", "b"], "v": null},
  "start": 0, "end": 1, "removed": ["S"], "inserted": ["a", "S", "b"]}
 ```
 
@@ -234,7 +239,7 @@ With `--format jsonl` the derivation is written as a `derivation` object followe
 After the steps, two lines give the measures of the derivation, computed from the steps themselves: the number of steps; the longest
 form, in symbols, and the first step at which it occurs (0 is the first form); the largest number of symbols that are not terminals,
 and its first step (only when the terminals are declared: the setting `terminals` in `[symbols]`, or `--terminals` in a search); the
-number of symbols created (inserted) and deleted over all steps; how many times each rule is used (shown as its name, or its notation if it has none, and its line: `grow (line 14) x2`); and how many forms
+number of symbols created (inserted) and deleted over all steps; how many times each rule is used (shown as its name, or its notation if it has none, and its line: `grow (line 14) x2`); a rule made from a line with ranges is shown with its values, `grow[X=1] (line 14) x2`; and how many forms
 the derivation has in each component, the first form included. The peak of non-terminals counts the first form, while a search does
 not apply `--max-nonterminals` to the axioms. They are printed after every derivation: `--trace`, `--trace-marks`, a derivation found
 by a search, the steps shown by `replay --explain`, the interactive `trace` command and `gcrsim-retention --trace`. With `--format jsonl`
@@ -467,6 +472,69 @@ pruning; a negative answer is then conditional on it, and the outcome says so.
   it can tokenize them only when that spelling reads in one way (a model with the symbols `a`, `b` and `ab` is ambiguous for it); the
   built-in search has no such limit. The filter is not checked by the program, so the answer is conditional on it, and the outcome
   says so.
+
+## Language listing
+
+`gcrsim MODEL --language --max-word-len N` (or `gcrsim --mode language MODEL --max-word-len N`) lists the distinct terminal
+words of at most `N` symbols in component 1. Use `--component N` to select another component, `--terminals SYMBOLS` to override
+the model's terminal declaration, and `--match PATTERN` to require a whole-word match using the model's regex syntax. The listing
+includes matching axioms and the empty word when it occurs. Words are sorted by symbol count and then by symbol order, followed
+by counts per length.
+
+The word length bound applies to the listing. Exploration uses the model's filters and any `--config`, `--python-filter` or
+`--max-nonterminals` restriction. A complete result covers the active restrictions. A partial result includes the words found
+so far and the reason exploration could not establish completeness. With `--format jsonl`, each word is a `word` record and the
+`end` record gives the counts and outcome.
+
+Use `--reject-max-len N` to reject generated forms longer than `N` symbols and `--reject-strings PATTERN` to reject generated
+forms containing a regex match. These options override the corresponding model and configuration settings. An empty
+`--reject-strings` value clears a configured pattern.
+
+## Describe
+
+`gcrsim MODEL --describe` (or `gcrsim --mode describe MODEL`) reads the model and prints what it is made of, without running it:
+the rules by kind, the size of an insertion-deletion system, the symbols and the rules that lead from one component to another.
+The exit status is 0, or 2 for an error in the model. `--config` and `--python-filter` are read as in the other operations.
+
+A model that uses [ranges](model-syntax.md#ranges) also gets the list of the rule lines with ranges and of the rules they generate, with their values.
+
+```
+$ gcrsim examples/cookbook/02_insdel.txt --describe
+model examples/cookbook/02_insdel.txt: 1 component, 1 rule (1 ins)
+insertion-deletion size (n,m,m';p,q,q') (2,1,1;0,0,0)
+  ins: inserted 2 symbols; left context 1, right context 1
+  no deletion rules
+symbols: 2 (found in the model); terminals: not declared
+  only inserted: a b
+  only deleted: (none)
+  inserted and deleted: (none)
+  never edited: (none)
+component 1: 1 -> 1: 1 rule; axioms: 1
+```
+
+The size `(n,m,m';p,q,q')` is read over the `ins` rules (the most symbols inserted, the longest left and right context) and over
+the `del` rules (the most symbols deleted, the longest left and right contexts); `{start}` and `{end}` count 0, a class or
+`{any}` counts 1, and the conditions `permit` and `forbid` are counted but ignored. A model with `sub`, plain or `re` rules is
+reported as not an insertion-deletion system, and the kinds are named. In a graph-controlled model the size of each component is
+given too. The symbols are those of the declared alphabet, or those found in the model; a symbol is *only inserted*,
+*only deleted*, *inserted and deleted*, or *never edited* (it occurs only in axioms and contexts). The roles are approximate
+when a deleted part has `{any}` or the model has `re` rules, and the output says so.
+
+```
+$ gcrsim examples/cookbook/07_graph_controlled.txt --describe
+model examples/cookbook/07_graph_controlled.txt: 2 components, 2 rules (2 plain)
+not an insertion-deletion system (it has plain rules)
+symbols: 3 (found in the model); terminals: not declared
+  only inserted: a b
+  only deleted: (none)
+  inserted and deleted: S
+  never edited: (none)
+component 1: 1 -> 1: 1 rule, 1 -> 2: 1 rule; axioms: 1
+component 2: no rules; axioms: 0
+```
+
+`--format jsonl` writes a `header` object (with `mode` `describe`), one `description` object with the same data grouped by topic
+([the table](#jsonl)), and an `end` object with `status` 0 and `steps` 0.
 
 ## Limits
 

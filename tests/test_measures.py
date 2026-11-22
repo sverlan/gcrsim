@@ -99,7 +99,7 @@ def test_to_dict_has_the_documented_fields():
     d = replay(parse_model(TWO), FORMS).measures.to_dict()
     assert list(d) == ["steps", "max_len", "max_len_step", "rules", "created", "deleted", "max_nonterminals",
                        "max_nonterminals_step", "components"]
-    assert set(d["rules"][0]) == {"line", "component", "notation", "name", "kind", "count"}
+    assert set(d["rules"][0]) == {"line", "component", "notation", "name", "kind", "bindings", "count"}
     json.dumps(d)
 
 

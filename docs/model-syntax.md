@@ -139,6 +139,121 @@ ins(a, X, b), 1; forbid: c; name: put-X
   in short references (the `rules:` line of the measures, the notes of a search), and it is the `name` of the rule in
   `--format jsonl` and in Python.
 
+## Ranges
+
+A range is a finite interval of integers with a name. A line that uses a range stands for one line per value, so a family of similar
+symbols or rules is written once. Declare the ranges in `[symbols.ranges]`, as `first..last` (both included, non-negative integers of
+at most 15 digits). The declarations may come in any order, also after their use:
+
+```toml
+[symbols]
+alphabet = "S a b C{:K} D{:I}{:J}"
+
+[symbols.ranges]
+I = "0..1"
+J = "0..1"
+K = "1..3"
+```
+
+`{:X}` stands for the value of the range `X`, written in decimal without leading zeros: with `X = "1..3"`, `A{:X}` is `A1`, `A2` and
+`A3`. Between `{:` and `}` there can be an expression with integers, range names, `+`, `-`, `*`, `%` and parentheses, with spaces or
+tabs around its parts: `{:X+1}`, `{:1-X}`, `{:2*X}`, `{:(X+1)%4}`. `*` needs a constant operand (`2*X`, not `X*Y`), and `%` a positive
+constant divisor (`X%0` and `X%Y` are errors, found when the model is loaded). A reference has at most 300 characters and 40 levels of
+parentheses. A negative result is an error that names the line, the rule and the values. A result above the range is kept: `{:X+1}` is 4
+for `X = 3`, and an alphabet that does not contain `A4` rejects it; write `{:X%3+1}` to wrap around.
+
+`{:` always starts a reference, in every part of a model that is read as symbols or rules, so a text that uses `{:` as ordinary symbols
+must change. A `{:` after an odd number of backslashes is never a reference: `\{:` is left as written, which in the pattern of a
+`re(...)` rule is the literal text `{:`. An even number of backslashes (`\\{:X}`) leaves the reference.
+
+**Where ranges can be used.**
+
+* In `alphabet`, `lexemes`, `terminals` and in the definition of a class: each word that has references is replaced by its expansions,
+  so `alphabet = "A{:X}"` is `A1 A2 A3`, and the class `P = "A{:X}"` is the class `{P}` of those three symbols (a class is still matched
+  when the rule is applied: `{P}->b` is one rule).
+* In an axiom: one axiom for each combination, `1 = ["S C{:K}"]` is `1 = ["S C1", "S C2", "S C3"]`.
+* In every rule line, of every kind (`ins`, `del`, `sub`, plain, `send()` and `re(...)`), in any part of it: the operands, the contexts,
+  the `permit`, `forbid` and `permit-any` words, and the component numbers of the general `[rules]` section
+  (`{:X}, A{:X} -> B, {:X+1}`; a component number is checked after the values are put in). A section header cannot have a range
+  (`[rules.{:X}]` is an error): write the rules in `[rules]`.
+* A range cannot be used in a rule name (the values are added to the name, see below). The text of `description` and of the other
+  settings is never expanded.
+
+**Rules.** A rule line that uses ranges is replaced, when the model is loaded, by one ordinary rule for each combination of the values
+of the ranges it uses; the same range has the same value everywhere in the line. Several ranges give all the combinations, in the order
+in which the ranges first appear in the line (the first one changes slowest). The generated rules take the place of the line in the
+order of the file, so the order in which the rules are tried does not change. The line is read as any rule line is, with the references
+as place holders, so the components, the pattern of a `re(...)` rule, the conditions and the name are found as in a line without ranges.
+
+```
+A{:X}A{:X} -> b            # A1A1->b, A2A2->b, A3A3->b: only equal indices
+{A}{A} -> b                # one rule: any two members of the class A, A1A2 too
+D{:I}{:J} -> D{:J}{:1-I}   # I outer, J inner: D00->D01, D01->D11, D10->D00, D11->D10
+```
+
+With `re(...)` the expansion is made first, and the generated lines are read as usual, so `{2}`, `\1`, `(?:)` and `{CLASS}` keep their
+meaning: for `X = "1..2"`, `re(({C})A{:X}{2})->\1B{:X}` is `re(({C})A1{2})->\1B1` and `re(({C})A2{2})->\1B2`.
+
+A reference that uses no range name (`q{:2*3}->r`) is evaluated and gives one ordinary rule, without bindings.
+
+The rules that the ranges of a model generate cannot be more than `max_expanded_rules` (100000 by default, a setting of `[model]`, see
+[configuration.md](configuration.md)); the words of the declarations and the axioms are not counted. The error names the line that goes
+over the limit.
+
+**Names and bindings.** A generated rule keeps the line, the name and the notation of its source line, and has its own *bindings*, the
+values of its ranges. A named rule is shown as `grow[X=1]`, a rule without a name as its line as written followed by the bindings,
+`ins(S,D{:I}{:J},)[I=0,J=1]`. A name is used by one line only; the rules generated from that line do not clash. A trace shows them like
+this (a model with `A{:X} -> B{:X}, 1; name: grow` and an unnamed `B{:X} -> A{:X}`):
+
+```
+    step 1: A1A2 => B1A2   (component 1 -> 1, rule grow[X=1] at line 9: A1->B1,1, position 0)
+    step 2: B1A2 => B1B2   (component 1 -> 1, rule grow[X=2] at line 9: A2->B2,1, position 1)
+    rules: grow[X=1] (line 9) x1, grow[X=2] (line 9) x1; components: 1 (3 forms)
+```
+
+In `--format jsonl` and in Python the name, the line and the bindings are separate fields ([cli.md](cli.md#jsonl),
+[python.md](python.md)). `gcrsim --describe` lists the rules of each line with ranges, with their bindings.
+
+The example [`examples/features/ranges.txt`](../examples/features/ranges.txt) uses two-bit indices `D{:I}{:J}`, the expressions `1-I`
+and `M+1`, a class made from a range and an axiom with a range, and compares a range with a class; the comments of the file explain each
+line. In [`examples/features/ranges_components.txt`](../examples/features/ranges_components.txt) the component numbers come from a
+range: a chain that goes round four components, `{:X}, S -> c{:X} S, {:X%4+1}`. The description of the first one:
+
+```
+$ gcrsim examples/features/ranges.txt --describe
+model examples/features/ranges.txt: 1 component, 16 rules (4 ins, 12 plain)
+not an insertion-deletion system (it has plain rules)
+size of its insertion and deletion rules (n,m,m';p,q,q') (1,1,0;0,0,0)
+  ins: inserted 1 symbol; left context 1, right context 0
+  no deletion rules
+symbols: 10 (declared alphabet); terminals: a b (declared)
+  only inserted: a b C3
+  only deleted: S C1
+  inserted and deleted: C2 D00 D01 D10 D11
+  never edited: (none)
+ranges: I=0..1, J=0..1, K=1..3, M=1..2
+4 rule lines with ranges, giving 14 rules:
+  line 30: ins(S,D{:I}{:J},) (I=0..1, J=0..1): 4 rules
+    [I=0,J=0]  ins(S,D00,)
+    [I=0,J=1]  ins(S,D01,)
+    [I=1,J=0]  ins(S,D10,)
+    [I=1,J=1]  ins(S,D11,)
+  line 32: D{:I}{:J}->D{:J}{:1-I},1;name:step (I=0..1, J=0..1): 4 rules
+    step[I=0,J=0]  D00->D01,1
+    step[I=0,J=1]  D01->D11,1
+    step[I=1,J=0]  D10->D00,1
+    step[I=1,J=1]  D11->D10,1
+  line 34: C{:M}->C{:M+1},1;name:count (M=1..2): 2 rules
+    count[M=1]  C1->C2,1
+    count[M=2]  C2->C3,1
+  line 36: D{:I}{:J}D{:I}{:J}->,1;name:cancel (I=0..1, J=0..1): 4 rules
+    cancel[I=0,J=0]  D00D00->,1
+    cancel[I=0,J=1]  D01D01->,1
+    cancel[I=1,J=0]  D10D10->,1
+    cancel[I=1,J=1]  D11D11->,1
+component 1: 1 -> 1: 16 rules; axioms: 3
+```
+
 ## Multi-character symbols, classes and the alphabet
 
 A symbol such as `p1` is written with several characters, so a rule could match part

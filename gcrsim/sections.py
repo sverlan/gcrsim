@@ -12,8 +12,8 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-SYMBOL_KEYS = ("alphabet", "lexemes", "classes", "terminals")
-MODEL_KEYS = ("description", "history", "derivation", "reject_strings", "reject_max_len", "components", "filters", "marks")
+SYMBOL_KEYS = ("alphabet", "lexemes", "classes", "terminals", "ranges")
+MODEL_KEYS = ("description", "history", "derivation", "reject_strings", "reject_max_len", "max_expanded_rules", "components", "filters", "marks")
 RUN_KEYS = ("steps", "print_hide", "print_max_len", "print_sep", "word_sep", "show_detailed_application", "hash_history")
 SECTIONS = {"symbols": SYMBOL_KEYS, "model": MODEL_KEYS, "run": RUN_KEYS}
 _INTERNAL = {"lexemes": "symbols"}  # the name used inside the program for the multi-character symbols
@@ -46,6 +46,8 @@ def flatten(doc: Dict[str, Any], where: str, from_model: bool, error: Any) -> Di
                 if home:
                     error("%s'%s' belongs in [%s], not in [%s]" % (where, key, home, name))
                 error("%sunknown setting '%s' in [%s]" % (where, key, name))
+            if key == "max_expanded_rules" and not from_model:
+                error("%s'max_expanded_rules' is read when the model is loaded, so a configuration file cannot hold it" % where)
             if name == "model" and key in ("components", "filters", "marks"):
                 continue  # the per-component tables, below
             out[_INTERNAL.get(key, key)] = value

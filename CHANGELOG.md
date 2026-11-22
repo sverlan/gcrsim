@@ -5,6 +5,19 @@ All notable changes of each released version are listed here, newest first. The 
 
 ## [Unreleased]
 
+## [0.3.0]
+
+### Added
+
+* List terminal words with `--language` or `gcrsim.language`, with counts and a completeness outcome.
+* The `--format jsonl` header names the declared terminals (`terminals`, or `null`).
+* Describe a model with `--describe` or `gcrsim.describe`: rules by kind, insertion-deletion size, symbol roles and control graph, without running it.
+* Ranges: `[symbols.ranges]` and `{:X}`, `{:X+1}` in symbols, axioms and rule lines expand one line into many (`max_expanded_rules` limits them).
+
+### Changed
+
+* `{:` now starts a range reference (axioms and symbols included); `\{:` never does, so a regular expression writes a literal `{:` as `\{:`.
+
 ## [0.2.0]
 
 ### Added

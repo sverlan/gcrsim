@@ -80,9 +80,10 @@ class Jsonl(Format):
 
     name = "jsonl"
 
-    def __init__(self, write, decode, log, show=None, tokens=None):
+    def __init__(self, write, decode, log, show=None, tokens=None, terminals=None):
         super().__init__(write, decode, log, show)
         self.tokens = tokens or (lambda s: [self.decode(ch) for ch in s])
+        self.terminals = terminals  # the declared terminals (names) written in the header, or None
 
     def _line(self, obj: Dict[str, Any]) -> None:
         self._write(json.dumps(obj, ensure_ascii=False) + "\n")
@@ -118,7 +119,7 @@ class Jsonl(Format):
 
     def header(self, version: str, mode: str, input_file: str, config: str, description: str = "", **more: Any) -> None:
         self._line({"type": "header", "version": version, "mode": mode, "model": input_file, "configuration": config,
-                    "description": description, **more})
+                    "description": description, "terminals": self.terminals, **more})
 
     def start(self, version, input_file, config, contents, skip, limit, description="") -> None:
         self.header(version, "run", input_file, config, description)
