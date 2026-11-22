@@ -5,12 +5,15 @@ from __future__ import annotations
 import sys
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 from .history import DigestSet
-from .errors import CallbackError, ConfigError, GcrsimError, LimitReached, TraceError
+from .errors import CallbackError, ConfigError, GcrsimError, LimitReached, TimeLimitReached, TraceError
 from .filters import _DEFAULT_MESSAGE, _build_check, _compile_marks
 from .pattern import make_matcher
 from .model import Model
-from .rules import Rule
+from .lexicon import EMPTY
+from .measures import format_measures
+from .rules import Rule, edit_record
 from .settings import Settings, _callback_arity, settings_for_model
+from .timelimit import Deadline
 
 
 # ---------------------------------------------------------------------------
@@ -19,11 +22,29 @@ from .settings import Settings, _callback_arity, settings_for_model
 
 
 class DerivationStep:
-    """One rewriting step of a derivation."""
+    """One rewriting step of a derivation: the string ``source`` of component ``source_component`` became ``result`` in
+    ``target_component`` at step number ``step``.
 
-    __slots__ = ("step", "source_component", "source", "rule", "start", "end", "target_component", "result")
+    ``rule`` is the ``Rule`` that was applied. ``start`` and ``end`` delimit the replaced part of the source: positions in
+    symbols (internally every symbol, a multi-character one too, is one character of the string, so a position in symbols is
+    the same as a position in the internal string). The replaced symbols are ``removed`` and the symbols that took their
+    place are ``inserted``. ``source`` and ``result`` are strings with the real symbol names; ``before`` and ``after`` are the same
+    strings as lists of symbols, so that a symbol is never cut by reading the string. ``internal_source`` and ``internal_result``
+    are the internal strings.
 
-    def __init__(self, step, source_component, source, rule, start, end, target_component, result):
+    The rule is also described by separate fields: ``rule_line``, ``rule_kind`` (``plain``, ``ins``, ``del``, ``sub``, ``send``
+    or ``re``), ``rule_notation``, the operands ``u``, ``x``, ``y``, ``v`` as lists of symbols (None where the kind of rule does not
+    have the operand; a class is written ``{NAME}`` and ``{start}``, ``{end}``, ``{any}`` stand for themselves) and ``name``
+    (the name of the rule, or None). Components count from 0 in the attributes and from 1 in ``to_dict``.
+
+    ``Simulator.trace`` returns real names in ``source`` and ``result``; ``Simulator._trace_many``, used by the command line,
+    leaves the internal strings there."""
+
+    __slots__ = ("step", "source_component", "source", "rule", "start", "end", "target_component", "result",
+                 "internal_source", "internal_result", "lexicon", "show")
+
+    def __init__(self, step, source_component, source, rule, start, end, target_component, result, lexicon=None, show=None):
+        self.show = show  # writes an internal string with print_sep (the simulator's); format_derivation uses it by default
         self.step = step
         self.source_component = source_component
         self.source = source
@@ -32,6 +53,92 @@ class DerivationStep:
         self.end = end
         self.target_component = target_component
         self.result = result
+        self.internal_source = source
+        self.internal_result = result
+        self.lexicon = lexicon or EMPTY
+
+    def _record(self) -> Dict[str, Any]:
+        """The symbol data of the step (the one place where they are built), computed when asked for: a step holds only the
+        internal strings, and every call gives new lists."""
+        return edit_record(self.lexicon, self.rule, self.internal_source, self.start, self.end, self.internal_result)
+
+    @property
+    def before(self) -> List[str]:
+        return self._record()["before"]
+
+    @property
+    def after(self) -> List[str]:
+        return self._record()["after"]
+
+    @property
+    def removed(self) -> List[str]:
+        return self._record()["removed"]
+
+    @property
+    def inserted(self) -> List[str]:
+        return self._record()["inserted"]
+
+    @property
+    def provenance(self) -> Dict[str, Any]:
+        return self.rule.provenance(self.lexicon)
+
+    def copy(self) -> "DerivationStep":
+        """A step of its own (the symbol data are built on every access, so nothing is shared with the original)."""
+        d = DerivationStep(self.step, self.source_component, self.internal_source, self.rule, self.start, self.end,
+                           self.target_component, self.internal_result, self.lexicon, self.show)
+        d.source, d.result = self.source, self.result
+        return d
+
+    @property
+    def rule_line(self) -> int:
+        return self.provenance["line"]
+
+    @property
+    def rule_kind(self) -> str:
+        return self.provenance["kind"]
+
+    @property
+    def rule_notation(self) -> str:
+        return self.provenance["notation"]
+
+    @property
+    def u(self) -> Optional[List[str]]:
+        return self.provenance["u"]
+
+    @property
+    def x(self) -> Optional[List[str]]:
+        return self.provenance["x"]
+
+    @property
+    def y(self) -> Optional[List[str]]:
+        return self.provenance["y"]
+
+    @property
+    def v(self) -> Optional[List[str]]:
+        return self.provenance["v"]
+
+    @property
+    def name(self) -> Optional[str]:
+        return self.provenance["name"]
+
+    def to_dict(self) -> Dict[str, Any]:
+        """The step as JSON-ready data (the ``derivation_step`` object of ``--format jsonl``): ``step``,
+        ``component`` and ``target`` (counted from 1), ``before`` and ``after`` (lists of symbols), ``rule`` (``line``, ``kind``,
+        ``notation``, ``u``, ``x``, ``y``, ``v``, ``name``), ``start`` and ``end`` (in symbols), ``removed`` and ``inserted``. The object that the command line writes also has ``type`` and, after ``before`` and ``after``, the
+        fields ``before_string`` and ``after_string`` (the words as printed, with ``print_sep``)."""
+        rec = self._record()
+        return {
+            "step": self.step,
+            "component": self.source_component + 1,
+            "target": self.target_component + 1,
+            "before": rec["before"],
+            "after": rec["after"],
+            "rule": rec["rule"],
+            "start": self.start,
+            "end": self.end,
+            "removed": rec["removed"],
+            "inserted": rec["inserted"],
+        }
 
     def __repr__(self) -> str:
         return "DerivationStep(step=%d, %r => %r, rule line %d, position %d)" % (
@@ -54,25 +161,33 @@ class Mark:
         return "Mark(step=%d, component=%d, string=%r, label=%r)" % (self.step, self.component, self.string, self.label)
 
 
-def format_derivation(derivation: Sequence[DerivationStep]) -> str:
+def _shown(d: DerivationStep, show: Optional[Callable[[str], str]], internal: str, plain: str) -> str:
+    show = show or d.show
+    return plain if show is None else show(internal)
+
+
+def format_derivation(derivation: Sequence[DerivationStep], show: Optional[Callable[[str], str]] = None,
+                      measures: Optional[Any] = None) -> str:
+    """The derivation as the command line prints it, with the symbols separated by ``print_sep`` as the simulator that made the
+    steps would print them. ``show`` writes an internal string of symbols instead (a step made without a simulator has none: its
+    ``source`` and ``result`` are written). ``measures`` (a ``Measures``) are written after the steps."""
     if not derivation:
-        return "    (axiom: no derivation steps)\n"
+        return "    (axiom: no derivation steps)\n" + ("" if measures is None else format_measures(measures))
     lines = []
     for d in derivation:
         lines.append(
-            "    step %d: %s => %s   (component %d -> %d, rule at line %d: %s, position %d)\n"
+            "    step %d: %s => %s   (component %d -> %d, %s, position %d)\n"
             % (
                 d.step,
-                d.source,
-                d.result,
+                _shown(d, show, d.internal_source, d.source),
+                _shown(d, show, d.internal_result, d.result),
                 d.source_component + 1,
                 d.target_component + 1,
-                d.rule.line,
-                d.rule.text,
+                d.rule.describe(),
                 d.start,
             )
         )
-    return "".join(lines)
+    return "".join(lines) + ("" if measures is None else format_measures(measures))
 
 
 class _NoPrint:
@@ -153,6 +268,8 @@ class Simulator:
         trace_best_effort: bool = False,
         no_mark_rejected: bool = False,
         retain_store: Optional[Any] = None,
+        deadline: Optional[Deadline] = None,
+        prune: Optional[Callable[[Sequence[str]], Sequence[str]]] = None,
     ):
         self.model = model
         self.settings = settings or settings_for_model(model)
@@ -168,9 +285,12 @@ class Simulator:
         self.max_marks = max_marks
         self.trace_best_effort = trace_best_effort
         self.no_mark_rejected = no_mark_rejected
+        self.deadline = deadline  # the time limit: checked while candidates are generated and filtered, and between steps
+        self._prune = prune  # drops candidates before anything else is done with them (the search uses it); None: a plain run
 
         st = self.settings
         self.lexicon = model.lexicon
+        self.show = self.lexicon.shower(st.print_sep)  # writes an internal string of symbols (with print_sep) for messages and output
         self._skip = make_matcher(st.reject_strings, self.lexicon)
         self._reject_max_len = st.reject_max_len if st.reject_max_len is not None else sys.maxsize  # None: no length limit
         self._callback = st.filter_next
@@ -221,6 +341,7 @@ class Simulator:
         self.retained_count = 0
         self.trace_lost_from: Optional[int] = None
         self.last_candidates = 0
+        self.total_candidates = 0  # candidates generated in all the steps (the size of the work when there is no history)
         self._accepted = 0  # strings accepted so far in the current step (all components)
         self._pending_marks: List[List[Mark]] = [[] for _ in range(self.ncomp)]
         self._pending_count = 0
@@ -298,12 +419,13 @@ class Simulator:
             self._pending_count += 1
         else:
             self.marks.append(record)
+        shown = self.show(string)  # the message holds the symbols with their real names
         if message is _DEFAULT_MESSAGE:
-            text: Optional[str] = "Mark (%s): %s" % (label, string)
+            text: Optional[str] = "Mark (%s): %s" % (label, shown)
         elif message is None:
             text = None  # recorded, but no line is printed
         else:
-            text = message.format(string=string, component=component + 1, step=step, label=label)
+            text = message.format(string=shown, component=component + 1, step=step, label=label)
         if text is not None:
             self._report(component, text)
 
@@ -352,6 +474,9 @@ class Simulator:
         n = self.ncomp
         step_no = self.step_no + 1
         self.ctx.step = step_no
+        dl = self.deadline
+        if dl is not None and dl.expired():
+            self._time_limit(step_no)
         cur = self.cur
         detailed = self.settings.show_detailed_application
         history = self.settings.history
@@ -388,9 +513,10 @@ class Simulator:
                 rules = self.rules[i]
                 if not rules:
                     continue
+                strings = cur[i] if dl is None else self._watch(cur[i], step_no, 16)
                 if max_c is None:
                     bound = [(self._traced(r) if detailed else r.expand, nxt[r.target].extend) for r in rules]
-                    for s in cur[i]:
+                    for s in strings:
                         for exp, extend in bound:
                             cands = exp(s)
                             if cands:
@@ -399,7 +525,7 @@ class Simulator:
                 else:
                     # the edits are small tuples: count them before building any candidate string
                     bound = [(r, nxt[r.target].extend) for r in rules]
-                    for s in cur[i]:
+                    for s in strings:
                         for r, extend in bound:
                             cands = self._limited(r, s, total, step_no, detailed)
                             if cands:
@@ -410,6 +536,9 @@ class Simulator:
                 self._filter(i, nxt[i], seen, out[i], step_no)
                 nxt[i] = []
         self.last_candidates = total
+        self.total_candidates += total
+        if dl is not None and dl.expired():  # the tail of the step (and the last callbacks) used up the time: the step is not committed
+            self._time_limit(step_no)
         accepted = self._accepted
         if self.retain:
             self._retain(step_no, out)  # may raise: the step is not committed then
@@ -426,16 +555,17 @@ class Simulator:
             rules = self.rules[i]
             if not rules:
                 continue
+            strings = cur[i] if self.deadline is None else self._watch(cur[i], step_no, 16)
             if max_c is None:
                 bound = [(r.expand, r.target) for r in rules]
-                for s in cur[i]:
+                for s in strings:
                     for exp, t in bound:
                         cands = exp(s)
                         if cands:
                             total += len(cands)
                             self._filter(t, cands, seens[t], out[t], step_no)
             else:
-                for s in cur[i]:
+                for s in strings:
                     for r in rules:
                         cands = self._limited(r, s, total, step_no, False)
                         if cands:
@@ -450,21 +580,39 @@ class Simulator:
             self._limit("max-step-candidates", max_c, step_no, max_c + 1)
         cands = r.build(s, r.edits(s))
         if detailed and cands:
-            self._write("%s => %s\n" % (s, " ".join(cands)))
+            show = self.show
+            self._write("%s => %s\n" % (show(s), " ".join(map(show, cands))))
         return cands
 
     def _traced(self, r: Rule) -> Callable[[str], Sequence[str]]:
         """``r.expand`` that also shows the application (``show_detailed_application``)."""
         write = self._write
         expand = r.expand
+        show = self.show
 
         def traced(s: str) -> Sequence[str]:
             res = expand(s)
             if res:
-                write("%s => %s\n" % (s, " ".join(res)))
+                write("%s => %s\n" % (show(s), " ".join(map(show, res))))
             return res
 
         return traced
+
+    def _time_limit(self, step_no: int) -> None:
+        dl = self.deadline
+        assert dl is not None
+        raise TimeLimitReached(str(dl), dl.seconds, step_no, {"history": self.hist_count})
+
+    def _watch(self, items: Sequence[str], step_no: int, every: int) -> Any:
+        """``items``, one by one, with a look at the clock after every ``every`` of them (only when a time limit is set)."""
+        dl = self.deadline
+        assert dl is not None
+        n = 0
+        for x in items:
+            n += 1
+            if n % every == 0 and dl.expired():
+                self._time_limit(step_no)
+            yield x
 
     def _limit(self, name: str, value: int, step_no: int, count: int) -> None:
         raise LimitReached(
@@ -476,6 +624,10 @@ class Simulator:
 
     def _filter(self, t: int, cands: Sequence[str], seen: set, out: List[str], step_no: int) -> None:
         """Dedup, length, skip regex, component conditions, callback."""
+        if self._prune is not None:
+            cands = self._prune(cands)  # a dropped candidate is not stored in the history, accepted, marked or retained
+        if self.deadline is not None:
+            cands = self._watch(cands, step_no, 1024)
         maxlen = self._reject_max_len
         skip = self._skip
         cf = self._cfilters[t]
@@ -598,21 +750,24 @@ class Simulator:
 
     def _q(self, s: str) -> str:
         """``repr`` of an internal string with the real symbol names (for messages)."""
-        return repr(self.lexicon.decode(s))
+        return repr(self.show(s))
 
     def trace_many(self, targets: Sequence[Tuple[int, str, Optional[int]]]) -> List[List[DerivationStep]]:
-        """Batch trace-back with the real symbol names (targets may be given with names or internal codes)."""
+        """Batch trace-back with the real symbol names: the strings of the targets are written with the real names of the symbols (not
+        with internal codes, as in ``sim.cur``)."""
         if not self.lexicon.has_lexemes:
             return self._trace_many(targets)
         encode, decode = self.lexicon.encode, self.lexicon.decode
         chains = self._trace_many([(c, encode(s), k) for c, s, k in targets])
-        return [
-            [
-                DerivationStep(d.step, d.source_component, decode(d.source), d.rule, d.start, d.end, d.target_component, decode(d.result))
-                for d in chain
-            ]
-            for chain in chains
-        ]
+        for chain in chains:
+            for d in chain:  # the steps are new objects, one set for each chain
+                d.source, d.result = decode(d.internal_source), decode(d.internal_result)
+        return chains
+
+    def _derivation_step(self, step: int, component: int, source: str, rule: Rule, start: int, end: int, result: str) -> DerivationStep:
+        """The record of one step of a derivation (the single place where it is built; the internal strings are the source
+        and the result)."""
+        return DerivationStep(step, component, source, rule, start, end, rule.target, result, self.lexicon, self.show)
 
     def _trace_many(self, targets: Sequence[Tuple[int, str, Optional[int]]]) -> List[List[DerivationStep]]:
         """Batch trace-back: one pass over each content level for all targets.
@@ -665,11 +820,13 @@ class Simulator:
                     if not rules or i >= len(content):
                         continue
                     for s in content[i]:
+                        if self.deadline is not None and self.deadline.expired():
+                            self._time_limit(self.step_no + 1)
                         for r in rules:
                             for start, end, res in r.spans(s):
                                 key = (r.target, res)
                                 if key in want and key not in got:
-                                    got[key] = DerivationStep(k, i, s, r, start, end, r.target, res)
+                                    got[key] = self._derivation_step(k, i, s, r, start, end, res)
                                     remaining -= 1
                                     if k - 1 >= 1:
                                         pending.setdefault(k - 1, set()).add((i, s))
@@ -692,8 +849,8 @@ class Simulator:
             key = (comp, string)
             for level in range(step, 0, -1):
                 rec = found[level][key]
-                chain.append(rec)
-                key = (rec.source_component, rec.source)
+                chain.append(rec.copy())  # a step shared by two chains is a separate object in each
+                key = (rec.source_component, rec.internal_source)
             chain.reverse()
             chains.append(chain)
         return chains

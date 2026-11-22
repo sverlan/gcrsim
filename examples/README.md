@@ -7,7 +7,7 @@
   ([docs/model-syntax.md](../docs/model-syntax.md)). Checked by `tests/test_cookbook.py`.
 * [`python/`](python/) — models that come with a Python file (a function in a filter or in a mark, or the filter function `keep`):
   checking against an infinite language, a valence grammar with a gate (two ways), expected words read from a file, marking what a
-  filter cuts, and a beam. Explained in
+  filter cuts, a beam, and the filter of a search for a word (the same pruning as the options of `--search`). Explained in
   [docs/python.md](../docs/python.md) and in [docs/grammars.md](../docs/grammars.md#examples-with-python); checked by
   `tests/test_python_examples.py`.
 * [`real/`](real/) — the research models, written as insertions, deletions and substitutions. A line `# old: RULE` shows the original rule

@@ -23,8 +23,8 @@ the next section header; everything else is read as TOML.
 # General section: [component,] rule [, target component]. Without a component number a
 # rule starts in component 1, and without a target it sends its result to component 1.
 [rules]
-# plain rule: in component 1, replace S by aS and send the result to component 2
-1, S -> a S, 2
+# plain rule: in component 1, replace S by aS and send the result to component 2 (its name is grow)
+1, S -> a S, 2; name: grow
 # in component 2, replace S by Sb and send the result to component 1
 2, S -> S b, 1
 # the right-hand side may be empty (the empty string): erase S, stay in component 1
@@ -49,11 +49,11 @@ S -> S b, 1
 **Components.** A model has numbered components, 1, 2, 3, ..., each holding a set of strings. A component is created when it is
 mentioned, in `[axioms]` or in a rule; one without axioms starts empty. A rule *belongs to* a component, its **source**: it is
 applied to the strings of that component. It sends its result to another component, its **target** (it may be the same one).
-* In the general `[rules]` section a rule is written `[N,] rule [, M] [; conditions]`: `N` is the source component and `M` the
+* In the general `[rules]` section a rule is written `[N,] rule [, M] [; clauses]`: `N` is the source component and `M` the
   target. Both default to 1, so `S -> aS` works in component 1 and sends to component 1.
 * In a section `[rules.N]` every rule belongs to component `N`, so no source is written (`N,` may be written, but it must be `N`),
   and the target `, M` is required.
-* The conditions (`; permit: ...`, `; forbid: ...`, see below) come after the target, which must then be written even when it is 1.
+* The clauses (`; permit: ...`, `; forbid: ...`, `; name: ...`, see below) come after the target, which must then be written even when it is 1.
 * Component numbers start at 1. The largest allowed number is 10000.
 
 **Rule forms.** Each form below is a rule `rule` in the lines above, and acts on the string of its source component. Every
@@ -121,6 +121,24 @@ the permitting symbols must occur in `uAv`, the forbidding ones must not): `A ->
 
 [`examples/real/rcanbncn/rcanbncn.txt`](../examples/real/rcanbncn/rcanbncn.txt) is a random-context grammar for aⁿbⁿcⁿ written this way.
 
+## Rule names
+
+A rule can have a name, a clause `; name: NAME` after the target component, in any position among the conditions:
+
+```
+1, S -> a S b, 1; name: grow
+ins(a, X, b), 1; forbid: c; name: put-X
+```
+
+* A name is a letter followed by letters, digits (0-9), `_`, `-` or `.`; white space is allowed around the name only. Like the
+  conditions, the clause follows the target component, which must be written, and a rule has at most one. After the target,
+  `; name:` always starts the clause, as `; forbid:` does.
+* A name is used by one rule only (in all components). An empty name, a bad character, a second `name:` clause or a name used
+  twice is an error that names the file and the line.
+* A name changes nothing in the rule. It is shown in the traces (`rule grow at line 14: ...`) and, instead of the rule's notation,
+  in short references (the `rules:` line of the measures, the notes of a search), and it is the `name` of the rule in
+  `--format jsonl` and in Python.
+
 ## Multi-character symbols, classes and the alphabet
 
 A symbol such as `p1` is written with several characters, so a rule could match part
@@ -135,12 +153,16 @@ symbols separated by spaces (a list of strings is accepted as well), and they ex
   useful, so they are listed here and read with the longest-match rule. It does not verify that other symbols are not used
   or generated.
 
+The same section can declare the terminal symbols with `terminals = "a b"`; the search uses it ([configuration.md](configuration.md)).
+
 ```
 [symbols]
 # the alphabet of the system: every symbol of the model must be one of these (p1 p2 K1 have several characters)
 alphabet = "a b c S A B X Y p1 p2 K1"
 # instead of the alphabet, only the symbols of several characters, without any check:
 # lexemes = "p1 p2 K1"
+# the terminal symbols (the search needs them)
+terminals = "a b c"
 
 # named sets of symbols
 [symbols.classes]

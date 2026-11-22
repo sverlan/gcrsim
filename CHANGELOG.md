@@ -5,14 +5,32 @@ All notable changes of each released version are listed here, newest first. The 
 
 ## [Unreleased]
 
+## [0.2.0]
+
+### Added
+
+* `--mode` selects the operation; `run` stays the default.
+* `word_sep` (a setting; `--word-sep` for `--trace` and replay) separates the symbols of a typed word, as `print_sep` does when printing.
+* Replay (`gcrsim MODEL --replay FILE`, or `gcrsim.replay` in Python): checks that a sequence of forms is a derivation of the model.
+* Search (`gcrsim MODEL --search WORD`, or `gcrsim.search` in Python): a breadth-first search for a word that prints a shortest derivation, prunes by the terminals when that is sound, and ends with an explicit outcome (found, not found within its bounds, inconclusive; exit status 0, 6, 3).
+* `--max-time T` (a limit of the elapsed time, in seconds or with the suffix `s`, `m`, `h`) in run, replay and search.
+* The setting `terminals` in `[symbols]` declares the terminal symbols (used by the search; run and replay ignore it).
+* Structured derivations: a step of `Simulator.trace` has the symbols of the string, the rule (kind, operands) and the edited part; `--format jsonl` writes a traced derivation as data, one object per step.
+* Rule names: a clause `; name: NAME` on a rule line; the name is shown in traces, replay, search notes and the measures, and is the `name` of the rule in `--format jsonl` and in Python. The rule's text is its `notation` (`rule_notation` of a step). (`; name:` after the target is now a clause.)
+* Measures of a derivation (steps, longest form, rule use, symbols created and deleted, non-terminals, forms per component): printed after every derivation, `measures` in `--format jsonl`, and `gcrsim.measure`, `Measures` in Python.
+
 ### Changed
 
-* The continuous integration runs the tests in one job (Ubuntu, Python 3.11, the oldest supported) in place of a matrix of four.
-* The tests of the continuous integration run in parallel (`pytest-xdist`, now in the development dependencies).
 * The message about a Perl configuration points to `docs/migration.md`.
-* The test workflow runs on pushes to branches and on pull requests, not on a tag push: the release workflow runs the tests itself.
+* **Breaking:** in Python, `Rule.text` is `Rule.notation`.
+* **Breaking:** the `--format jsonl` output changed: words are arrays of symbols (with a `_string` form as printed), one schema for every operation (`derivation` and `derivation_step` objects, `mode` in the header, `status` and `steps` in every `end`).
 
-## [0.1.1] - 2026-11-04
+### Fixed
+
+* With `print_sep` and multi-character symbols, headings, step numbers, rule texts and messages are no longer split by the separator.
+* `--retain-file` refuses the model, a configuration file or the filter file as its destination (it could overwrite them).
+
+## [0.1.1]
 
 ### Changed
 
@@ -23,7 +41,7 @@ All notable changes of each released version are listed here, newest first. The 
 * The first model of the README is saved and run from its own file; the examples folder is not part of the installed package.
 * The release workflow no longer sets up a cache in the upload job, which has no checkout (this removes a warning).
 
-## [0.1.0] - 2026-11-04
+## [0.1.0]
 
 First release of the Python version of gcrsim. It continues the [Perl simulator](https://github.com/sverlan/gcrsim-perl) with a
 new, declarative model notation; models of the Perl version can be converted with `gcrsim-convert`

@@ -234,7 +234,7 @@ def test_component_zero_rejected():
 def test_rule_records_line_number_and_text():
     m = parse_model('[axioms]\n1 = ["a"]\n\n\n[rules]\n\n1,a->b,1\n')
     r = m.rules[0][0]
-    assert r.line == 7 and r.text == "1,a->b,1"
+    assert r.line == 7 and r.notation == "1,a->b,1"
 
 
 def test_crlf_and_missing_final_newline():

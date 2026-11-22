@@ -140,6 +140,7 @@ run each with `gcrsim MODEL STEPS --python-filter FILE.py`.
 | [`valence_keep.py`](../examples/python/valence_keep.py) | the same gate as the filter function `keep`, which tests the component number itself (pure, so `--streaming` works) |
 | [`mark_what_is_cut.py`](../examples/python/mark_what_is_cut.py) | `keep` with `ctx.mark`: words longer than 7 symbols are marked `too_long` and then rejected, so the run shows what the limit removed |
 | [`beam.py`](../examples/python/beam.py) | `keep` with state: only the first 3 strings of each component are kept in each step; `--streaming` refuses it |
+| [`target_pruning.py`](../examples/python/target_pruning.py) | a pure `keep` that makes a breadth-first search aim at a target word: it drops the strings whose terminals cannot become the word, with an optional cap on non-terminals; the model is [`target_pruning.txt`](../examples/python/target_pruning.txt) |
 
 ## The package
 
@@ -171,9 +172,9 @@ starts with the file and the line. A `Model` has:
 | `lexicon` | the symbols, classes and alphabet: `encode(text)`, `decode(text)`, `tokens(encoded)` (the list of symbols) |
 | `config` | the settings that the model file carries |
 
-A rule has `line`, `text` (the rule as written), `source` and `target` (components, from 0), and `expand(s)`, the list of the strings
-it produces from `s` (as internal strings). `gcrsim.convert_model(perl_text)` returns `(new_text, warnings)` for a model of the
-Perl simulator.
+A rule has `line`, `notation` (the rule in the notation of the model, without the white space it does not need), `name` (its name, or
+`None`), `source` and `target` (components, from 0), and `expand(s)`, the list of the strings it produces from `s` (as internal strings).
+`gcrsim.convert_model(perl_text)` returns `(new_text, warnings)` for a model of the Perl simulator.
 
 ### The settings
 
@@ -207,11 +208,119 @@ data (mark lines, `ctx.report` messages, the detailed applications). Without it 
 | `sim.marks` | the marks recorded so far: `Mark` objects with `step`, `component`, `string`, `label` |
 | `sim.add_mark(component, string, label)` | marks a string of the current content by hand, between two steps |
 | `sim.remove(component, string)` | takes a string out of the current content; it is not rewritten in the next step, and it stays in the history |
-| `sim.trace(string, component=0, step=None)` | the derivation of a string: a list of `DerivationStep` objects (`step`, `source`, `result`, `rule`, `start`, `end`, `source_component`, `target_component`); the simulator must be created with `retain=True` |
+| `sim.trace(string, component=0, step=None)` | the derivation of a string: a list of `DerivationStep` objects ([below](#derivation-steps)); the simulator must be created with `retain=True` |
 | `sim.find_step(component, string)` | the first step in which a string appeared (retention needed) |
 
-`gcrsim.format_derivation(steps)` formats a derivation as the command line prints it. The counters `sim.last_candidates`,
+### Derivation steps
+
+A `DerivationStep` describes one rewriting step of component `source_component` into `target_component` (counted from 0):
+
+* `step`, `source`, `result` (strings with the real symbol names, without separators), `rule` (the `Rule`), `start`, `end`,
+  `source_component`, `target_component`.
+* `before`, `after`: the source and the result as lists of symbols. `start` and `end` are positions in symbols, they delimit the replaced
+  part of `before`; `removed` are the symbols replaced and `inserted` the symbols that took their place, so that
+  `before[:start] + inserted + before[end:] == after`.
+* `rule_line`, `rule_kind` (`plain`, `ins`, `del`, `sub`, `send` or `re`), `rule_notation`, the operands `u`, `x`, `y`, `v` as lists of symbols
+  (`x` is replaced by `y` between `u` and `v`, as in [model-syntax.md](model-syntax.md); `None` where the kind of rule has no such operand;
+  `{start}`, `{end}`, `{any}` and classes `{NAME}` stand for themselves), and `name` (the name of the rule, or `None`).
+* `to_dict()`: the step as JSON-ready data, the `derivation_step` object of `--format jsonl` without its `type` and without the `_string`
+  fields (components from 1).
+
+`gcrsim.format_derivation(steps)` formats a derivation as the command line prints it, with the `print_sep` of the simulator that made
+the steps. The derivation of an axiom is the empty list. The counters `sim.last_candidates`,
 `sim.hist_count` and `sim.retained_count` give the size of the last step, of the history and of the retained contents.
+
+### Replay
+
+`gcrsim.replay(model, forms, *, component=1, fragment=False, word_sep=None)` checks that `forms` is a derivation of `model`, as
+`gcrsim --mode replay` does ([cli.md](cli.md#replay)), without running the simulator. `model` is a `Model` or the name of a model
+file. `forms` is a list of lines `"N: WORD"` (component `N` counted from 1; a line without the prefix is in `component`; blank
+lines and lines that start with `#` are ignored) or of pairs `(N, "WORD")`. A word is written with the symbols together or separated
+by spaces. `word_sep` separates the symbols of a word, as white space does; `None` (the default) takes the `word_sep` setting of the
+model, `""` means none. `gcrsim.replay_file(model, path, ...)` reads the lines
+from a file (`"-"` is the standard input).
+
+```python
+report = gcrsim.replay("model.txt", ["1: S", "1: aSb", "2: ab"])
+if report.ok:
+    print(len(report.steps), "steps are legal")
+else:
+    print(report.failure.step, report.failure.reason)
+```
+
+A text that cannot be read (a symbol outside the alphabet, a component that does not exist, no form at all) raises `GcrsimError`
+with the line number. A derivation that is not legal is not an error: the report says so.
+
+| Object | Attributes |
+| --- | --- |
+| `ReplayReport` | `ok`; `steps`, the legal steps checked, a list of `ReplayStep`; `failure`, `None` or a `ReplayFailure`; `fragment`; `forms`, the number of forms read; `measures`, the `Measures` of the steps checked (`None` when the first form is not an axiom) |
+| `ReplayStep` | `index` (from 1); `lines`, the input lines of the two forms; `source_component` and `target_component` (from 0, as everywhere in the package); `source` and `result` (with the real symbol names); `rule`, `start` and `end` (the first rule of the model that gives the step, and its position); `ways`, the number of (rule, position) pairs that give it |
+| `ReplayFailure` | `step` (0 when the first form is not an axiom); `line`, the input line of the form that is wrong; `source_component`, `source`, `target_component`, `target` (`None` for a form that is not an axiom); `reason`: `not an axiom of component c`, or `no rule of component c gives this string in component d` (components from 1 in the text) |
+
+Words are read as in the command line, so a word with a space as a symbol cannot be replayed. The strings of a step are checked with one pass over the rules of its source component, so a derivation of thousands of steps is
+checked in seconds.
+
+### Search
+
+`gcrsim.search(model, word, *, component=1, terminals=None, max_steps=None, max_nonterminals=None, max_time=None, pruning=True,
+keep=None, word_sep=None, settings=None, max_step_candidates=None, max_history=None, max_step_accepted=None, max_retained=None)`
+searches for `word` in `component` of `model` (a `Model` or the name of a model file) as `gcrsim --mode search` does
+([cli.md](cli.md#search)), and returns a `SearchResult`. `terminals` is a string of symbols separated by white space or a list of
+names, one whole symbol name in each entry; `None` takes the setting `terminals` of the model, and a search with neither, or with an
+empty set, raises `GcrsimError`. `max_time` is in seconds and counts from the call, the reading of a model file included.
+`keep(s, component)` is a filter function as in [the filter function](#the-filter-function-keep); it runs after the built-in
+pruning, a negative answer is then conditional on it, and if it is not declared pure (`keep.pure = True`) the pruning is switched off.
+`settings` are the settings of the run (`None`: those of the model) and `word_sep` separates the symbols of `word` (`None`:
+`settings.word_sep`). An interrupted search is a result, not an exception.
+
+```python
+res = gcrsim.search("model.txt", "abba", max_steps=20)
+if res.found:
+    print(res.step, "steps")
+    print(gcrsim.format_derivation(res.derivation))
+elif res.outcome == "not_found":
+    print("no derivation within the bounds:", res.reason, res.conditional)
+else:
+    print("inconclusive:", res.reason, res.limit)
+```
+
+| Attribute | Meaning |
+| --- | --- |
+| `outcome`, `reason`, `limit` | `found`; `not_found` with `frontier_exhausted` or `depth_bound`; `inconclusive` with `limit` (and `limit`, the name of the limit, for example `max-history`), `time` or `interrupted` |
+| `found`, `status` | whether the word was found; the exit status of the command line (0, 6 or 3) |
+| `step` | the step at which the word appeared, or the last complete step |
+| `limit_step` | the step that a limit stopped (0 for the axioms), or `None` |
+| `explored` | the number of strings that entered the history (without a history, the candidates generated) |
+| `derivation` | a list of `DerivationStep` (empty when nothing was found, or when the word is an axiom) |
+| `measures` | the `Measures` of the derivation (`None` when nothing was found) |
+| `bounds` | `max_steps`, `max_nonterminals`, `max_len` (the model's `reject_max_len`) and `max_time`; `None` where not set |
+| `pruning`, `pruning_note` | whether pruning by the terminals was on, and why it was not |
+| `conditional` | what makes a negative answer hold only under an assumption: `python_filter`, `hash_history`, `max_nonterminals`, `max_len` |
+| `to_dict()` | the fields of the `end` object of `--format jsonl` |
+
+### Measures of a derivation
+
+`gcrsim.measure(derivation, model=None, terminals=None, first=None, component=1)` returns the `Measures` of a derivation, a list of
+`DerivationStep` or `ReplayStep`; the first form is that of the first step. `terminals` (a string of symbols separated by white space,
+or a list of names; `None`: those that `model`, a `Model` or a model file, declares) are needed for the peak of non-terminals, which is
+`None` without them. The derivation of an axiom has no steps: give its form as `first` (a list of symbols, or text read as a word of
+`model`) and its `component`.
+
+| Attribute | Meaning |
+| --- | --- |
+| `steps` | the number of steps |
+| `max_len`, `max_len_step` | the largest number of symbols of a form, the first form included, and the first step where it occurs (0 is the first form) |
+| `rules` | a list of dictionaries `line`, `component` (from 1), `notation`, `name`, `kind`, `count`: how many times each rule is used, in the order of the lines |
+| `created`, `deleted` | the symbols inserted and removed over all steps |
+| `max_nonterminals`, `max_nonterminals_step` | the largest number of symbols that are not terminals over the forms (the first form included), and the first step where it occurs; `None` without terminals |
+| `components` | a list of dictionaries `component` (from 1) and `forms`: the forms in each component along the derivation |
+| `to_dict()` | the `measures` object of `--format jsonl` |
+
+```python
+res = gcrsim.search("model.txt", "abba")
+m = res.measures                  # the same as gcrsim.measure(res.derivation, model="model.txt")
+print(m.steps, m.max_len, m.created, m.deleted)
+```
 
 ### Errors
 

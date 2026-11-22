@@ -317,7 +317,7 @@ ab c -> X , 1 ; permit: ab c , ab ; forbid: abc
     m = parse_model(text)
     rule = m.rules[0][0]
     assert list(rule.expand(m.axioms[0][0])) == [m.lexicon.encode("X") + m.lexicon.encode("ab")]
-    assert chr(0) not in rule.text and "ab c" in rule.text   # the rule is shown as it was written
+    assert chr(0) not in rule.notation and "ab c" in rule.notation   # the rule is shown as it was written
     assert list(rule.expand(m.lexicon.encode("abc ab".replace(" ", "")))) == []   # forbid: abc blocks it
 
 

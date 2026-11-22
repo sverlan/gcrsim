@@ -201,7 +201,7 @@ S->Sb,1
         store = SqliteRetention(str(tmp_path / ("h%d.db" % hashed))) if hashed else None
         sim = gcrsim.Simulator(parse_model(text), Settings(hash_history=hashed), write=lambda t: None, retain=True, retain_store=store)
         sim.run(8)
-        chains.append([(d.step, d.source, d.result, d.rule.text) for d in sim.trace("aaabbb")])
+        chains.append([(d.step, d.source, d.result, d.rule.notation) for d in sim.trace("aaabbb")])
     assert chains[0] == chains[1] and chains[0]
 
 

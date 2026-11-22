@@ -36,6 +36,7 @@ class Settings:
         config_name: str = "",
         config_notice: Optional[str] = None,
         marks: Optional[Dict[Any, Dict[str, Any]]] = None,
+        word_sep: str = "",
     ):
         self.marks = {} if marks is None else marks
         self.history = history
@@ -45,6 +46,7 @@ class Settings:
         self.reject_max_len = reject_max_len
         self.show_detailed_application = show_detailed_application
         self.print_sep = print_sep
+        self.word_sep = word_sep
         self.steps = steps
         self.hash_history = hash_history
         self.description = description
@@ -63,6 +65,7 @@ _RUN_KEYS = (
     "reject_max_len",
     "show_detailed_application",
     "print_sep",
+    "word_sep",
     "steps",
     "hash_history",
     "description",
@@ -76,12 +79,13 @@ _TYPES = {
     "reject_max_len": int,
     "show_detailed_application": bool,
     "print_sep": str,
+    "word_sep": str,
     "steps": int,
     "hash_history": bool,
     "description": str,
 }
 _TABLE_KEYS = ("filters", "marks")  # the settings of each component, keyed by component number
-_MODEL_ONLY_KEYS = ("symbols", "classes", "alphabet")  # they change how the model text is read
+_MODEL_ONLY_KEYS = ("symbols", "classes", "alphabet", "terminals")  # they change how the model text is read, or declare its terminals
 _KNOWN_KEYS = _RUN_KEYS + ("components",) + _MODEL_ONLY_KEYS + ("filter_next",)
 
 

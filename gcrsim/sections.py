@@ -1,7 +1,7 @@
 """The sections of the TOML part of a model file and of a configuration file.
 
 ``[symbols]`` (``alphabet`` or ``lexemes``, and ``[symbols.classes]``) says how the model text is read, so it only belongs to
-a model. ``[model]`` (``description``, ``history``, ``derivation``, ``reject_strings``, ``reject_max_len`` and the tables
+a model; it also declares the ``terminals``, the symbols that a word of the language is made of (used by the search). ``[model]`` (``description``, ``history``, ``derivation``, ``reject_strings``, ``reject_max_len`` and the tables
 ``[model.components.N.filters]`` and ``[model.components.N.marks]``, with ``[model.filters]`` for every component and ``[model.marks]`` for component 1)
 says what is simulated, and ``[run]`` (``steps``, ``print_*``,
 ``show_detailed_application``, ``hash_history``) how it is executed and shown. A configuration file may hold ``[model]`` and
@@ -12,9 +12,9 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-SYMBOL_KEYS = ("alphabet", "lexemes", "classes")
+SYMBOL_KEYS = ("alphabet", "lexemes", "classes", "terminals")
 MODEL_KEYS = ("description", "history", "derivation", "reject_strings", "reject_max_len", "components", "filters", "marks")
-RUN_KEYS = ("steps", "print_hide", "print_max_len", "print_sep", "show_detailed_application", "hash_history")
+RUN_KEYS = ("steps", "print_hide", "print_max_len", "print_sep", "word_sep", "show_detailed_application", "hash_history")
 SECTIONS = {"symbols": SYMBOL_KEYS, "model": MODEL_KEYS, "run": RUN_KEYS}
 _INTERNAL = {"lexemes": "symbols"}  # the name used inside the program for the multi-character symbols
 

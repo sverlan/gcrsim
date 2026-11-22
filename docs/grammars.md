@@ -546,16 +546,16 @@ Matrix grammar G = ({S,A,B,C}, {a,b,c}, S, M), the same as above, with the first
   m1 = (S -> ABC)   m2 = (A -> aA, B -> bB, C -> cC)   m3 = (A -> a, B -> b, C -> c)
 L(G) = { a^n b^n c^n : n >= 1 }.
 A matrix is a chain of components, one per rule. The first rules of all the matrices are in component 1, so the matrix does not
-have to be chosen with send(): the first rule that is applied chooses it. The last rule of m2 returns to component 1, and the last
-rule of m3 ends in component 6, where the words of the language are.
+have to be chosen with send(): the first rule that is applied chooses it. The last rules of m2 and m3 return to component 1,
+where the words of the language are.
 ```
 
 **Model** ([`examples/cookbook/08_matrix_direct.txt`](../examples/cookbook/08_matrix_direct.txt)):
 
 ```
 
-# the words of the language: a string of terminal symbols (lower-case letters) that reaches component 6 is marked
-[model.components.6.marks]
+# the words of the language: a string of terminal symbols (lower-case letters) in component 1 is marked
+[model.components.1.marks]
 terminal = '\A[a-z]*\Z'
 
 [axioms]
@@ -575,7 +575,7 @@ C -> c C, 1
 [rules.4]
 B -> b, 5
 [rules.5]
-C -> c, 6
+C -> c, 1
 ```
 
 Run: `gcrsim examples/cookbook/08_matrix_direct.txt 12`

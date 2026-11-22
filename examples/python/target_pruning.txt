@@ -1,0 +1,24 @@
+# A system that builds every word over {a, b} one symbol at a time: S is the start symbol, a and b are inserted anywhere, S is
+# deleted. The words of the language are all the words over {a, b}, and a word of length n appears at step n + 1 at the earliest.
+# The number of strings grows like 2^n, so a plain breadth-first search for a word of 18 symbols meets millions of strings before the
+# word appears. A search that only follows the strings that can still become the word needs about 93 thousand.
+#   gcrsim examples/python/target_pruning.txt --search abbabaababbaabbaba
+#   gcrsim examples/python/target_pruning.txt --search abbabaababbaabbaba --no-pruning --max-history 1000000      (inconclusive: stopped by the limit)
+#   gcrsim examples/python/target_pruning.txt 19 --python-filter examples/python/target_pruning.py --trace abbabaababbaabbaba --stop-on-found
+# The last command does with a filter what the first does with the built-in options; target_pruning.py explains how.
+# (a Python file executes code: run only files you trust.)
+
+[symbols]
+alphabet = "a b S"
+terminals = "a b"
+
+[model]
+reject_max_len = 19
+
+[axioms]
+1 = ["S"]
+
+[rules]
+ins(, a, )
+ins(, b, )
+del(, S, )

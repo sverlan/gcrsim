@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "gcrsim"
-version = "0.1.1"
+version = "0.2.0"
 description = "Graph-controlled string rewriting simulator (insertion-deletion systems and other regulated rewriting)"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -42,6 +42,7 @@ dev = ["pytest>=8", "pytest-xdist>=3"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "-n auto"
 pythonpath = ["."]
 markers = [
     "perl: differential test against the original Perl simulator (skipped when Perl is unavailable)",

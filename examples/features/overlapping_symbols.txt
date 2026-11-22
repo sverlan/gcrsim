@@ -10,6 +10,9 @@ alphabet = "a b ab S T"
 [run]
 # print a space between a multi-character symbol and its neighbours, so that ab a b is not shown as abab
 print_sep = " "
+# with word_sep, a word that you type (the word of --trace or --search, the forms of a replay) can separate its symbols:
+# --trace ab-a-b is ab a b (the same as --word-sep -)
+# word_sep = "-"
 
 [axioms]
 1 = ["S"]

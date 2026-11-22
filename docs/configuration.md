@@ -43,6 +43,15 @@ can never bring a function (that is the job of the Python file), and an unknown 
 
 ## The settings
 
+### In `[symbols]`
+
+`alphabet`, `lexemes` and `[symbols.classes]` say how the model text is read ([model-syntax.md](model-syntax.md)). One more setting
+declares what the symbols are:
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `terminals` | none | the terminal symbols, a string of symbols separated by white space (`terminals = "a b"`). Each must be a symbol of the model, and the value cannot be empty. The search ([cli.md](cli.md#search)) needs it (or `--terminals`) and uses it to prune; a run and a replay ignore it. Like the rest of `[symbols]` it belongs to the model: a `--config` file cannot hold it |
+
 ### In `[model]`
 
 | Setting | Default | Meaning |
@@ -63,6 +72,7 @@ can never bring a function (that is the job of the Python file), and an unknown 
 | `print_hide` | none | a regular expression; matching strings are not listed (they stay in the run) |
 | `print_max_len` | no limit | longer strings are not listed |
 | `print_sep` | none | text put between a multi-character symbol and its neighbours, and between symbols that would read as another one, when printing (for example `" "`) |
+| `word_sep` | none | text that separates the symbols of a word you type: the word of `--trace`, and the words of a replay file (also in Python, `replay(..., word_sep=...)`). It is the input counterpart of `print_sep`: with the same value, printed words can be pasted back. No character of it may occur in a symbol of the model (checked at the start of a run or replay; a model with `re(...)` rules gets a warning, because they can produce any character) |
 | `show_detailed_application` | `false` | print a line for every rule application that produced results |
 | `hash_history` | `false` | keep 128-bit digests instead of the strings in the history ([cli.md](cli.md)) |
 

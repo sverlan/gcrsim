@@ -17,6 +17,25 @@ import sqlite3
 from typing import Iterator, List, Optional
 
 
+def refuse_protected(destination: str, protected: "List[Optional[str]]") -> None:
+    """A retention file is emptied (deleted) when it is opened: refuse a destination that is the model or a configuration or filter
+    file in use (``GcrsimError``, status 2)."""
+    from .errors import GcrsimError
+
+    dest = os.path.realpath(destination)
+    for other in protected:
+        if not other or not os.path.exists(other):
+            continue
+        same = os.path.realpath(other) == dest
+        if not same and os.path.exists(destination):
+            try:
+                same = os.path.samefile(other, destination)
+            except OSError:
+                same = False
+        if same:
+            raise GcrsimError("--retain-file %s is the file %s, which would be deleted: choose another file" % (destination, other))
+
+
 class SqliteRetention:
     """A mapping ``step -> list of contents`` stored in an SQLite database (the file is created empty on opening)."""
 
@@ -161,6 +180,7 @@ def find(path: str, string: str, component: Optional[int] = None, write=print) -
 def trace(path: str, model_path: str, string: str, component: int, write=print) -> int:
     """Print the derivation of ``string`` from the contents in a retention file; needs the model whose run wrote the file."""
     from .engine import Simulator, format_derivation
+    from .measures import chain_measures
     from .errors import TraceError
     from .model import parse_model_file
     from .settings import settings_for_model
@@ -175,7 +195,8 @@ def trace(path: str, model_path: str, string: str, component: int, write=print) 
         write("cannot trace: %s" % exc)
         return 2
     write("Trace of %r (component %d):" % (string, component))
-    write(format_derivation(steps).rstrip("\n"))
+    measures = chain_measures(model, steps, sim.lexicon.encode(string), component - 1)
+    write(format_derivation(steps, None, measures).rstrip("\n"))
     return 0
 
 

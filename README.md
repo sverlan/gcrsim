@@ -50,7 +50,7 @@ With `steps` (on the command line or in the configuration) the simulator runs th
 ## A first model
 
 A matrix grammar for aⁿbⁿcⁿ, a language that needs several components. A matrix is a chain of rules applied one after the other, so
-each rule gets its own component; the first rules of all the matrices are in component 1, and the last rule of `m2` returns to it:
+each rule gets its own component; the first rules of all the matrices are in component 1, and the last rules of `m2` and `m3` return to it:
 
 ```
 # matrix m1 = (S -> ABC), m2 = (A -> aA, B -> bB, C -> cC), m3 = (A -> a, B -> b, C -> c)
@@ -67,15 +67,15 @@ A -> a, 4
 B -> b B, 3
 [rules.3]
 C -> c C, 1
-# m3: B -> b in component 4, C -> c in component 5, and the word is in component 6
+# m3: B -> b in component 4, C -> c in component 5, then back to component 1, where the word is
 [rules.4]
 B -> b, 5
 [rules.5]
-C -> c, 6
+C -> c, 1
 ```
 
 Save the model as `matrix.txt` and run `gcrsim matrix.txt 12`; it prints, at every step, the strings of each component; `abc`, `aabbcc`, ... appear
-in component 6. The same model is in the repository as [`examples/cookbook/08_matrix_direct.txt`](examples/cookbook/08_matrix_direct.txt).
+in component 1. The same model is in the repository as [`examples/cookbook/08_matrix_direct.txt`](examples/cookbook/08_matrix_direct.txt).
 
 ## Documentation
 

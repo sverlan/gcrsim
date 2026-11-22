@@ -54,21 +54,42 @@ class Model:
 _HEADER_RE = re.compile(r"\[[ \t]*([A-Za-z_][A-Za-z0-9_-]*)((?:[ \t]*\.[ \t]*[A-Za-z0-9_-]+)*)[ \t]*\][ \t]*(?:#.*)?")
 _CLASS_REF = re.compile(r"\{([A-Za-z_][A-Za-z0-9_]*)\}")
 _PREFIX_RE = re.compile(r"([0-9]*),")
-_CLAUSE_START = re.compile(r";(?=(?:permit-any|permit|forbid):)")
+_CLAUSE_START = re.compile(r";(?=(?:permit-any|permit|forbid|name):)")
+_GUARD_START = re.compile(r";(?=(?:permit-any|permit|forbid):)")  # before the target only the conditions are recognized
+_RAW_NAME = re.compile(r";\s*name\s*:(.*?)(?=;\s*(?:permit-any|permit|forbid|name)\s*:|$)", re.S)
+_CLAUSE_KINDS = (";permit:", ";forbid:", ";permit-any:", ";name:")
 
 
-def _split_clauses(tail: str, path: str, lineno: int) -> Tuple[List[str], List[str], List[str]]:
-    """Parse ``;permit:w1,w2;forbid:w3;permit-any:w4,w5`` (the text after the target component)."""
+def _check_name(name: str, path: str, lineno: int) -> str:
+    """A rule name: a letter, then letters, digits, ``_``, ``-`` or ``.``."""
+    shown = name.replace(SEP, " ")
+    if name == "":
+        raise ModelError("empty rule name in a name: clause", path, lineno)
+    if not name[0].isalpha() or not all(ch.isalpha() or ch in "0123456789_-." for ch in name):
+        raise ModelError(
+            "bad rule name %r: a name is a letter followed by letters, digits, '_', '-' or '.'" % shown, path, lineno
+        )
+    return name
+
+
+def _split_clauses(tail: str, path: str, lineno: int) -> Tuple[List[str], List[str], List[str], Optional[str]]:
+    """Parse ``;permit:w1,w2;forbid:w3;permit-any:w4,w5;name:N`` (the text after the target component)."""
     permit: List[str] = []
     forbid: List[str] = []
     any_of: List[str] = []
+    name: Optional[str] = None
     for clause in _CLAUSE_START.split(tail)[1:]:
         kind, _, body = clause.partition(":")
+        if kind == "name":
+            if name is not None:
+                raise ModelError("a rule has more than one name: clause", path, lineno)
+            name = _check_name(body, path, lineno)
+            continue
         words = body.split(",")
         if any(w == "" for w in words):
             raise ModelError("empty word in the %s list of a rule" % kind, path, lineno)
         {"permit": permit, "forbid": forbid, "permit-any": any_of}[kind].extend(words)
-    return permit, forbid, any_of
+    return permit, forbid, any_of, name
 
 
 def find_re_end(body: str, start: int) -> int:
@@ -139,7 +160,7 @@ def _strip_ws(raw: str) -> str:
 class _Form:
     """A parsed rule line, before the rule objects are built."""
 
-    __slots__ = ("kind", "args", "src", "tgt", "permit", "forbid", "any_of")
+    __slots__ = ("kind", "args", "src", "tgt", "permit", "forbid", "any_of", "name", "shown")
 
     def __init__(self, kind, args, src, tgt, permit, forbid):
         self.kind = kind  # plain, ins, del, sub, send, re
@@ -149,6 +170,8 @@ class _Form:
         self.permit = permit
         self.forbid = forbid
         self.any_of: List[str] = []
+        self.name: Optional[str] = None
+        self.shown = ""  # the rule line as shown (without the name clause)
 
 
 def _after_target(rest: str, line: str, path: str, lineno: int) -> Tuple[Optional[int], str]:
@@ -159,7 +182,7 @@ def _after_target(rest: str, line: str, path: str, lineno: int) -> Tuple[Optiona
         raise ModelError("unexpected text after the rule in %r" % line, path, lineno)
     tm = re.match(r"([0-9]*)(.*)", rest[1:])
     digits, tail = tm.group(1), tm.group(2)
-    if tail and not tail.startswith((";permit:", ";forbid:", ";permit-any:")):
+    if tail and not tail.startswith(_CLAUSE_KINDS):
         raise ModelError("unexpected text after the target component in rule %r" % line, path, lineno)
     if not digits:
         raise ModelError("a comma after the rule must be followed by the target component number in %r" % line, path, lineno)
@@ -223,9 +246,9 @@ def _parse_rule(line: str, section: Optional[int], path: str, lineno: int) -> _F
         head, comma, tail = right.partition(",")
         if comma:
             tgt, clauses = _after_target("," + tail, line, path, lineno)
-        elif _CLAUSE_START.search(head):
+        elif _GUARD_START.search(head):
             raise ModelError(
-                "a ;permit: / ;forbid: / ;permit-any: clause needs the target component before it (write ',N' after the right-hand side)",
+                "a ;permit: / ;forbid: / ;permit-any: / ;name: clause needs the target component before it (write ',N' after the right-hand side)",
                 path,
                 lineno,
             )
@@ -233,8 +256,9 @@ def _parse_rule(line: str, section: Optional[int], path: str, lineno: int) -> _F
     permit: List[str] = []
     forbid: List[str] = []
     any_of: List[str] = []
+    name: Optional[str] = None
     if clauses:
-        permit, forbid, any_of = _split_clauses(clauses, path, lineno)
+        permit, forbid, any_of, name = _split_clauses(clauses, path, lineno)
     if section is None:
         src = 1 if src is None else src
         tgt = 1 if tgt is None else tgt
@@ -250,6 +274,11 @@ def _parse_rule(line: str, section: Optional[int], path: str, lineno: int) -> _F
         raise ModelError("component numbers start at 1 (rule %r)" % line, path, lineno)
     result = _Form(kind, args, src - 1, tgt - 1, permit, forbid)
     result.any_of = any_of
+    result.name = name
+    result.shown = line
+    if name is not None:  # the notation does not repeat the name
+        keep = "".join(";" + c for c in _CLAUSE_START.split(clauses)[1:] if not c.startswith("name:"))
+        result.shown = line[: len(line) - len(clauses)] + keep
     return result
 
 
@@ -261,8 +290,10 @@ def _mentions_dollar(text: str) -> bool:
 def make_rule(index: int, lineno: int, text: str, form: _Form, lexicon: Lexicon) -> Rule:
     """Build the rule object for a parsed line."""
     rule = _build_rule(index, lineno, text, form, lexicon)
+    rule.kind = form.kind
     if form.any_of:
         rule.add_any(form.any_of, lexicon)
+    rule.name = form.name
     return rule
 
 
@@ -372,8 +403,12 @@ def parse_model(text: str, path: str = "<string>") -> Model:
             continue
         line = _strip_ws(raw)
         form = _parse_rule(line, section, path, lineno)
+        if form.name is not None:  # the name is checked as written: white space is allowed only around it
+            found = _RAW_NAME.findall(raw)
+            if found:
+                _check_name(found[-1].strip(), path, lineno)
         max_comp = max(max_comp, form.src, form.tgt)
-        pending_rules.append((lineno, line.replace(SEP, " "), form))
+        pending_rules.append((lineno, form.shown.replace(SEP, " "), form))
     doc = _toml_part("\n".join(toml_lines), path)
     axiom_table = doc.pop("axioms", {})
     if not isinstance(axiom_table, dict):
@@ -394,6 +429,8 @@ def parse_model(text: str, path: str = "<string>") -> Model:
         raise ModelError(message, path)
 
     config = flatten(doc, "", True, reject)
+    if "terminals" in config and not isinstance(config["terminals"], str):
+        raise ModelError("terminals must be a string of symbols separated by white space, not %r" % (config["terminals"],), path)
     ncomp = max_comp + 1
     lexicon = build_lexicon(config, text, path)
     axioms: List[List[str]] = []
@@ -417,7 +454,14 @@ def parse_model(text: str, path: str = "<string>") -> Model:
         or any("$" in w for _, _, f in pending_rules for w in f.permit + f.forbid + f.any_of)
     )
     rules: List[List[Rule]] = [[] for _ in range(ncomp)]
+    named: Dict[str, int] = {}
     for idx, (lineno, line, form) in enumerate(pending_rules):
+        if form.name is not None:
+            if form.name in named:
+                raise ModelError(
+                    "the rule name %r is used by the rules at lines %d and %d" % (form.name, named[form.name], lineno), path, lineno
+                )
+            named[form.name] = lineno
         try:
             rules[form.src].append(make_rule(idx, lineno, line, form, lexicon))
         except ModelError as exc:

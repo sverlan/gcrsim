@@ -48,6 +48,20 @@ _SYNTAX = frozenset("{},()")
 # ---------------------------------------------------------------------------
 
 
+class ClassItem(frozenset):
+    """The members of a class ``{NAME}`` in an operand (internal characters); it keeps the name that the rule wrote."""
+
+    name: str = ""
+
+    def __new__(cls, codes, name):
+        obj = super().__new__(cls, codes)
+        obj.name = name
+        return obj
+
+    def __reduce__(self):
+        return (ClassItem, (tuple(self), self.name))
+
+
 def parse_operand(text: str, lexicon: Lexicon, what: str) -> List[Item]:
     """A matching operand: symbols and ``{start}``, ``{end}``, ``{any}``, ``{CLASS}``."""
     if "->" in text:
@@ -77,7 +91,7 @@ def parse_operand(text: str, lexicon: Lexicon, what: str) -> List[Item]:
             elif name == "any":
                 items.append(ANY)
             else:
-                items.append(lexicon.class_codes(name))
+                items.append(ClassItem(lexicon.class_codes(name), name))
             i = m.end()
         elif c in _SYNTAX:
             raise ModelError(
@@ -118,7 +132,7 @@ class Rule:
     __slots__ = (
         "index",
         "line",
-        "text",
+        "notation",
         "source",
         "target",
         "lhs",
@@ -128,7 +142,11 @@ class Rule:
         "any_of",
         "guarded",
         "expand",
+        "kind",
+        "name",
     )
+
+    default_kind = "sub"
 
     def __init__(
         self,
@@ -145,7 +163,7 @@ class Rule:
     ):
         self.index = index
         self.line = line
-        self.text = text
+        self.notation = text
         self.source = source
         self.target = target
         self.lhs = lhs.replace(SEP, "")  # the text as shown (the separator marks of the model text are dropped)
@@ -156,12 +174,14 @@ class Rule:
             _check_alphabet(lexicon, w, "a permit/forbid word of rule %r" % text)
         self.any_of: tuple = ()
         self.guarded = bool(self.permit or self.forbid)
+        self.kind = self.default_kind  # plain, ins, del, sub, send or re (the parser sets it for the form that was written)
+        self.name: Optional[str] = None  # the optional name of the rule (the clause ``;name:NAME``)
 
     def add_any(self, words: Sequence[str], lexicon: Lexicon) -> None:
         """Add the ``permit-any`` condition: at least one of ``words`` occurs."""
         self.any_of = tuple(parse_literal(w, lexicon, "permit-any word") for w in words)
         for w in self.any_of:
-            _check_alphabet(lexicon, w, "a permit-any word of rule %r" % self.text)
+            _check_alphabet(lexicon, w, "a permit-any word of rule %r" % self.notation)
         self.guarded = True
         inner = self.expand
         any_words = self.any_of
@@ -212,8 +232,38 @@ class Rule:
         """All edits as ``(start, end, result)``; used for tracing and tests."""
         return [(a, b, s[:a] + mid + s[b:]) for a, b, mid in self.edits(s)]
 
+    def operands(self, lexicon: Lexicon) -> dict:
+        """The operands ``u``, ``x``, ``y``, ``v`` as lists of symbol names (None for the one the kind of rule does not have):
+        ``x`` is replaced (or deleted) by ``y`` between ``u`` and ``v``."""
+        return {"u": None, "x": None, "y": None, "v": None}
+
+    def provenance(self, lexicon: Lexicon) -> dict:
+        """Where the rule comes from, JSON-ready: ``line``, ``kind``, ``notation``, the operands ``u``, ``x``, ``y``, ``v`` and ``name``.
+        A class in an operand is written ``{NAME}``, and ``{start}``, ``{end}``, ``{any}`` stand for themselves."""
+        return {"line": self.line, "kind": self.kind, "notation": self.notation, "name": self.name, **self.operands(lexicon)}
+
+    def describe(self) -> str:
+        """``rule at line N: NOTATION``, or ``rule NAME at line N: NOTATION`` for a named rule."""
+        return "rule %sat line %d: %s" % ("" if self.name is None else self.name + " ", self.line, self.notation)
+
     def __repr__(self) -> str:
-        return "%s(line %d: %s)" % (type(self).__name__, self.line, self.text)
+        return "%s(line %d: %s)" % (type(self).__name__, self.line, self.notation)
+
+
+def edit_record(lexicon: Lexicon, rule: Rule, source: str, start: int, end: int, result: str) -> dict:
+    """The symbol-level description of one rewriting step, JSON-ready: ``before`` and ``after`` (lists of symbol names), the
+    ``rule`` provenance, ``start`` and ``end`` (positions in symbols: every symbol is one character of an internal string), and the
+    symbols ``removed`` and ``inserted``. The one place where the records of derivations and replays are built."""
+    tail = len(source) - end
+    return {
+        "before": lexicon.tokens(source),
+        "after": lexicon.tokens(result),
+        "rule": rule.provenance(lexicon),
+        "start": start,
+        "end": end,
+        "removed": lexicon.tokens(source[start:end]),
+        "inserted": lexicon.tokens(result[start:len(result) - tail]),
+    }
 
 
 def _step(item: Item, s: str, pos: int) -> int:
@@ -270,6 +320,25 @@ class SubRule(Rule):
             self.word = None
             self.a = self.b = 0
         self._finish(self._make_expand())
+
+    def operands(self, lexicon: Lexicon) -> dict:
+        def names(items: Sequence[Item]) -> List[str]:
+            out: List[str] = []
+            for item in items:
+                if isinstance(item, str):
+                    out.append(lexicon.decode(item))
+                elif isinstance(item, ClassItem):
+                    out.append("{%s}" % item.name)
+                elif isinstance(item, frozenset):
+                    out.append("{%s}" % "|".join(sorted(lexicon.decode(c) for c in item)))
+                else:
+                    out.append(repr(item))
+            return out
+
+        # the names of the model syntax: x is the part that is replaced or deleted, y the part that is produced or inserted
+        has = {"plain": "xy", "ins": "uyv", "del": "uxv"}.get(self.kind, "uxyv")
+        values = {"u": names(self.U), "x": names(self.Y), "y": lexicon.tokens(self.x), "v": names(self.V)}
+        return {key: (values[key] if key in has else None) for key in "uxyv"}
 
     def _make_expand(self) -> Callable[[str], Sequence[str]]:
         word, a, b, x = self.word, self.a, self.b, self.x
@@ -358,6 +427,7 @@ class SendRule(Rule):
     """``send()``: the whole string, unchanged."""
 
     __slots__ = ()
+    default_kind = "send"
 
     def __init__(self, index, line, text, source, target, permit, forbid, lexicon):
         super().__init__(index, line, text, source, target, "send()", "", permit, forbid, lexicon)
@@ -459,6 +529,7 @@ class RegexRule(Rule):
     """``re(pattern) -> rhs``: a regular expression, one match per start position."""
 
     __slots__ = ("pattern", "parts", "const")
+    default_kind = "re"
 
     def __init__(
         self,

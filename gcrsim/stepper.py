@@ -6,6 +6,7 @@ import shlex
 from typing import Any, Callable, List, Optional
 
 from .engine import Simulator, format_derivation
+from .measures import chain_measures
 from .errors import GcrsimError
 from .listing import visible
 
@@ -126,7 +127,8 @@ class Session:
         for c in comps:
             self.say("component %d" % (c + 1) if text else "Component %d:" % (c + 1))
             for s in visible([self.sim.cur[c]], self.skip, self.limit)[0]:
-                self.say((s or "(empty word)") if text else s)
+                shown = self.sim.show(s)
+                self.say((shown or "(empty word)") if text else shown)
             self.say("")
 
     def cmd_find(self, args: List[str]) -> None:
@@ -148,7 +150,8 @@ class Session:
         c = self.component(args[1]) if len(args) == 2 else 0
         derivation = self.sim.trace(args[0], component=c)
         self.say("Trace of %r (component %d):" % (args[0], c + 1))
-        self.out.write(format_derivation(derivation))
+        measures = chain_measures(self.sim.model, derivation, self.sim.lexicon.encode(args[0]), c)
+        self.out.write(format_derivation(derivation, self.sim.show, measures))
 
     def cmd_marks(self, args: List[str]) -> None:
         self.arguments(args, 0, 0, "marks")

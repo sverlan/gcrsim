@@ -94,8 +94,9 @@ def format_conf(
     contents: Sequence[Sequence[str]],
     print_hide: Optional[Callable[[str], Any]],
     print_max_len: Optional[int],
+    show: Optional[Callable[[str], str]] = None,
 ) -> Iterable[str]:
-    """Yield the lines that describe the print filters in the header."""
+    """Yield the lines that describe the print filters in the header. ``show`` writes each internal string (after the filters)."""
     for m, comp in enumerate(contents):
         yield "\nComponent %d:\n" % (m + 1)
         if print_max_len is None:
@@ -106,7 +107,8 @@ def format_conf(
             lines = [s for s in comp if len(s) <= print_max_len and not print_hide(s)]
         step = 50000
         for i in range(0, len(lines), step):
-            yield "\n".join(lines[i : i + step]) + "\n"
+            chunk = lines[i : i + step]
+            yield "\n".join(chunk if show is None else map(show, chunk)) + "\n"
 
 
 def digest_contents(hasher: Any, step: int, contents: Sequence[Sequence[str]]) -> Any:

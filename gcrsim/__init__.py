@@ -10,8 +10,11 @@ from .cli import main
 from .convert import convert_model
 from .engine import Context, DerivationStep, Mark, Simulator, format_derivation
 from .errors import CallbackError, ConfigError, GcrsimError, LimitReached, ModelError, TraceError
+from .measures import Measures, measure_derivation as measure
 from .model import Model, parse_model, parse_model_file
 from .output import Output, digest_contents, format_conf
+from ._replay import ReplayFailure, ReplayReport, ReplayStep, replay, replay_file
+from ._search import SearchResult, search
 from .rules import Rule
 from .settings import Settings, apply_settings, load_config, resolve_config
 
@@ -29,12 +32,21 @@ __all__ = [
     "Simulator",
     "Output",
     "DerivationStep",
+    "ReplayStep",
+    "ReplayReport",
+    "ReplayFailure",
+    "replay",
+    "replay_file",
+    "search",
+    "SearchResult",
     "parse_model",
     "parse_model_file",
     "load_config",
     "resolve_config",
     "format_conf",
     "format_derivation",
+    "measure",
+    "Measures",
     "digest_contents",
     "main",
 ]

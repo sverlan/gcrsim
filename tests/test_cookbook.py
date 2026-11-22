@@ -83,7 +83,7 @@ def test_08_matrix():
 
 def test_08_matrix_with_the_first_rules_in_component_1():
     _, ps = run("08_matrix_direct.txt", 14)
-    done = strings(ps, 6)
+    done = {s for s in strings(ps, 1) if s.islower()}  # component 1 also holds the sentential forms
     assert {"abc", "aabbcc", "aaabbbccc"} <= done
     assert all(len(s) % 3 == 0 and s == "a" * (len(s) // 3) + "b" * (len(s) // 3) + "c" * (len(s) // 3) for s in done)
 
@@ -319,7 +319,7 @@ def test_the_cookbook_document_contains_every_model_as_written():
 
 TERMINAL_MARKS = {   # model -> the component that holds the words of its language, marked 'terminal' in the model file
     "01_context_free": 1, "01_monotone_anbncn": 1, "02_insdel": 1, "03_marcus_internal": 1, "04_marcus_external": 1,
-    "06_network_of_processors": 2, "07_graph_controlled": 2, "08_matrix": 8, "08_matrix_direct": 6, "09_programmed": 3,
+    "06_network_of_processors": 2, "07_graph_controlled": 2, "08_matrix": 8, "08_matrix_direct": 1, "09_programmed": 3,
     "10_time_varying": 3, "11_regular_control": 3, "12_random_context": 1, "13_semi_conditional": 1, "15_ordered": 1,
     "16_bounded_index_classes": 1, "16_finite_index": 1, "18_scattered_context": 1,
 }

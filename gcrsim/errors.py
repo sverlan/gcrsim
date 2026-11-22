@@ -59,3 +59,26 @@ class LimitReached(GcrsimError):
                 "and the results must not be compared with an unlimited run"
                 % (limit, value, step, detail)
             )
+
+
+class TimeLimitReached(LimitReached):
+    """The time limit (``--max-time``) stopped the run; the step in progress is incomplete. ``limit`` is ``max-time`` and ``value``
+    the seconds."""
+
+    def __init__(self, shown: str, seconds: float, step: int, counts: Dict[str, int], what: str = "run"):
+        self.limit = "max-time"
+        self.value = seconds  # type: ignore[assignment]
+        self.step = step
+        self.counts = counts
+        self.shown = shown
+        detail = ", ".join("%s=%d" % kv for kv in sorted(counts.items()))
+        if what == "replay-end":
+            text = "the time limit (%s) had passed when the replay finished: the result is not reported" % shown
+        elif what == "replay":
+            text = "the time limit (%s) was reached before step %d of the replay was checked" % (shown, step)
+        elif step == 0:
+            text = "the time limit (%s) was reached before step 1 (%s)" % (shown, detail)
+        else:
+            text = ("the time limit (%s) was reached during step %d (%s); that step is incomplete and the results must not be "
+                    "compared with an unlimited run" % (shown, step, detail))
+        Exception.__init__(self, text)

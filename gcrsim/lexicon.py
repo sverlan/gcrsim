@@ -17,7 +17,7 @@ is read that way.
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Set
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Set
 from .errors import ModelError
 
 SEP = "\x00"  # a space between two symbols of a model line: no multi-character symbol is read across it
@@ -110,6 +110,8 @@ class Lexicon:
         alphabet: Optional[Iterable[str]] = None,
         taboo: str = "",
     ):
+        lexemes = list(lexemes)
+        self.declared: Set[str] = set(lexemes)  # every symbol listed in the model, one-character ones too
         found = sorted({s for s in lexemes if len(s) > 1}, key=lambda s: (-len(s), s))
         for lex in found:
             if _FORBIDDEN_IN_LEXEME.search(lex):
@@ -167,29 +169,51 @@ class Lexicon:
             return self._encode_run(text)
         return self._rx.sub(lambda m: self._code[m.group()], text)
 
+    def encode_spaced(self, text: str, word_sep: str = "", whitespace: bool = True) -> str:
+        """A word typed or pasted by the user: symbols written together or separated by white space (which stops a lexeme from
+        being read across it, as a space does in a model) and by ``word_sep``, if given. With ``whitespace`` false white space
+        is an ordinary character and only ``word_sep`` separates. A text that holds an internal character (the separator mark
+        or the code of a lexeme) is an error."""
+        pieces = text.split(word_sep) if word_sep else [text]
+        for ch in "".join(pieces):
+            if ch == SEP or self.is_internal(ch):
+                raise ModelError("the text contains the internal character U+%04X, which is not a symbol" % ord(ch))
+        if whitespace:
+            pieces = [token for piece in pieces for token in piece.split()]
+        return self.encode(SEP.join(pieces))
+
     def _readings(self, run: str, limit: int = 2) -> List[List[str]]:
-        """Up to ``limit`` ways to cut ``run`` into words of the alphabet."""
+        """Up to ``limit`` ways to cut ``run`` into words of the alphabet (in the order of the sorted alphabet)."""
         n = len(run)
         ways = [0] * (n + 1)  # the number of readings of run[i:], at most limit
         ways[n] = 1
         for i in range(n - 1, -1, -1):
             ways[i] = min(limit, sum(ways[i + len(w)] for w in self._by_first.get(run[i], ()) if run.startswith(w, i)))
         found: List[List[str]] = []
+        if not ways[0]:
+            return found
 
-        def walk(i: int, acc: List[str]) -> None:
-            if len(found) >= limit:
-                return
+        def candidates(i: int) -> List[str]:
+            if i == n:
+                return []
+            return [w for w in self._by_first.get(run[i], ()) if run.startswith(w, i) and ways[i + len(w)]]
+
+        acc: List[str] = []
+        stack = [[0, candidates(0), 0]]  # position, the words that can start there, the next one to try
+        while stack and len(found) < limit:
+            frame = stack[-1]
+            i, cands, k = frame
             if i == n:
                 found.append(list(acc))
-                return
-            for w in self._by_first.get(run[i], ()):
-                if run.startswith(w, i) and ways[i + len(w)]:
-                    acc.append(w)
-                    walk(i + len(w), acc)
+            if i == n or k >= len(cands):
+                stack.pop()
+                if acc:
                     acc.pop()
-
-        if ways[0]:
-            walk(0, [])
+                continue
+            frame[2] = k + 1
+            w = cands[k]
+            acc.append(w)
+            stack.append([i + len(w), candidates(i + len(w)), 0])
         return found
 
     def _encode_run(self, run: str) -> str:
@@ -228,6 +252,14 @@ class Lexicon:
             out.append(ch if name is None else name)
             prev_lexeme = name is not None
         return "".join(out)
+
+    def shower(self, sep: str) -> "Callable[[str], str]":
+        """The function that writes an internal string of symbols for output: ``decode_spaced`` when ``sep`` is set and the model
+        has multi-character symbols, ``decode`` otherwise. It is for encoded strings only: running text (headings, rule texts,
+        numbers) is not passed through it, because in plain text it would split real symbols."""
+        if sep and self.has_lexemes:
+            return lambda text: self.decode_spaced(text, sep)
+        return self.decode
 
     def class_codes(self, name: str) -> "frozenset[str]":
         """The symbols of a class as a set of internal characters."""
