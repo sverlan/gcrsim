@@ -43,6 +43,7 @@ uvx gcrsim model.txt 10               # run the simulator once, without installi
 ```
 gcrsim model.txt [steps]
 python -m gcrsim model.txt [steps]      # the same, from a checkout of the repository without installing
+gcrsim model.txt -i                   # run in the interactive mode (with a tui)
 ```
 
 With `steps` (on the command line or in the configuration) the simulator runs that many steps and exits; with `-i` it waits for a command after each step (Enter for the next step, `q` to quit, more commands in [docs/interactive.md](docs/interactive.md)).
