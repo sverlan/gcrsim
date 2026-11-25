@@ -5,6 +5,17 @@ All notable changes of each released version are listed here, newest first. The 
 
 ## [Unreleased]
 
+## [0.3.1]
+
+### Added
+
+* An agent skill for AI coding tools, printed by `gcrsim --print-skill`.
+
+### Fixed
+
+* Section names of a model are case-insensitive in every word (`[SYMBOLS.CLASSES]`), as documented.
+* A section header with a quoted name (`[model.components.1.marks."My.Label"]`) after a rules block is a header, not a rule.
+
 ## [0.3.0]
 
 ### Added

@@ -374,3 +374,8 @@ hash with unambiguous framing (the tests of the comparison with the Perl simulat
 line from Python and returns its exit status.
 
 Derivation sequences from the command line are in [marks-and-derivations.md](marks-and-derivations.md#from-python).
+
+### The agent skill
+
+`gcrsim.skill_text()` returns the text of the agent skill, the same text that `gcrsim --print-skill` prints (see
+[cli.md](cli.md#using-gcrsim-with-ai-agents)).

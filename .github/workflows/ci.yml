@@ -36,6 +36,7 @@ jobs:
           uvx --from dist/*.whl gcrsim --version
           uvx --from dist/*.whl gcrsim-convert --help > /dev/null
           uvx --from dist/*.whl gcrsim-retention --help > /dev/null
+          uvx --from dist/*.whl gcrsim --print-skill | cmp - gcrsim/skill/SKILL.md
           uvx --from dist/*.whl gcrsim examples/cookbook/07_graph_controlled.txt 3 --quiet
       - name: the source archive is complete (its tests pass)
         run: |

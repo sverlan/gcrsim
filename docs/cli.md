@@ -604,6 +604,25 @@ Streaming has one restriction that holds for every run, and one that concerns on
 * **Only with a Python filter function:** it has to be declared *pure* (it depends on nothing but the string and the component), and it
   must not call `print`; see *With `--streaming`* in [python.md](python.md#with---streaming).
 
+## Using gcrsim with AI agents
+
+`gcrsim --print-skill` prints the agent skill, a `SKILL.md` file in the Agent Skills format, and exits with status 0. It needs no
+model and may stand only with a mode selector (`--mode NAME`, `--describe`, `--language`); any other argument is an error
+(status 2). Install it in a folder named `gcrsim` where your tool looks for skills, for example:
+
+```
+# Claude Code, for one project (or ~/.claude/skills/gcrsim for every project)
+mkdir -p .claude/skills/gcrsim
+gcrsim --print-skill > .claude/skills/gcrsim/SKILL.md
+
+# Codex and other tools that read .agents/skills, for one project (or ~/.codex/skills/gcrsim for every project)
+mkdir -p .agents/skills/gcrsim
+gcrsim --print-skill > .agents/skills/gcrsim/SKILL.md
+```
+
+The skill links to these pages at the latest release; with an older installed version, read the pages of that version (the tag
+`vX.Y.Z` on GitHub).
+
 ## Translating a Perl model
 
 `gcrsim-convert OLD_MODEL [-o NEW_MODEL] [--source-encoding ENC]` translates a model of the Perl simulator, and the `.cfg` file that it

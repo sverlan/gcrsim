@@ -52,6 +52,8 @@ def _build_parser() -> "argparse.ArgumentParser":
     p.add_argument("--csv-sep", metavar="CHAR", default="tab",
                    help="separator of the csv format: one character (for example , or ;) or tab (the default)")
     p.add_argument("--version", action="version", version="gcrsim %s" % __version__)
+    p.add_argument("--print-skill", action="store_true",
+                   help="print the agent skill (SKILL.md) to the standard output and exit; no model or other argument")
     p.add_argument("--config", metavar="FILE", action="append", default=[],
                    help="configuration (.toml with [model] and [run]) applied over the model's own settings; repeatable, later files win")
     p.add_argument("--python-filter", metavar="FILE.py",
@@ -524,6 +526,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         argv = sys.argv[1:]
     from . import operations
 
+    argv = list(argv)
+    if any(_is_print_skill(a) for a in argv[: argv.index("--") if "--" in argv else len(argv)]):
+        return _print_skill(argv)
     try:
         operation, argv = operations.select(argv)
     except GcrsimError as exc:
@@ -565,6 +570,38 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             _silence_stdout()
         finally:
             sys.stdout = real_stdout
+
+
+def _is_print_skill(token: str) -> bool:
+    """``--print-skill``, or an abbreviation that argparse would also resolve to it (``--print-s`` and longer)."""
+    return len(token) >= len("--print-s") and "--print-skill".startswith(token)
+
+
+def _print_skill(argv: Sequence[str]) -> int:
+    """``--print-skill``: the text of the agent skill; accepted alone, with ``--mode NAME`` or with the alias of a mode that
+    takes no operand (``--describe``, ``--language``); an error with anything else."""
+    from . import operations
+    from ._skill import skill_text
+
+    end = argv.index("--") if "--" in argv else len(argv)
+    rest = [a for i, a in enumerate(argv) if not (i < end and _is_print_skill(a))]
+    try:
+        if len(rest) != len(argv) - 1:
+            raise GcrsimError("--print-skill is given twice")
+        operation, remaining = operations.select(rest)  # a mode selector is accepted (and checked)
+        if remaining and not (remaining == [operation.alias] and not operation.operand):
+            raise GcrsimError("--print-skill takes no model and no other argument (only --mode NAME, --describe or --language may stand with it)")
+    except GcrsimError as exc:
+        sys.stderr.write("gcrsim: %s\n" % exc)
+        return exc.exit_code
+    out = Output(sys.stdout)  # as the other operations: a closed pipe is reported as BrokenPipeError
+    try:
+        out.write(skill_text())
+        out.flush()
+    except BrokenPipeError:
+        _silence_stdout()
+        return 1
+    return 0
 
 
 def _silence_stdout() -> None:

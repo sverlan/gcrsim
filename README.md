@@ -108,6 +108,26 @@ A summary; the full table, with one sentence on how each grammar is written, is 
 | valence grammars | with a Python filter |
 | parallel rewriting (L systems, ET0L), splicing and communicating grammar systems, leftmost and rightmost derivations, control by a pushdown automaton or a Petri net | not supported |
 
+## Using gcrsim with AI agents
+
+gcrsim comes with an agent skill: a `SKILL.md` file in the open Agent Skills format, for AI coding tools such as Claude Code
+or Codex. It teaches an agent the model syntax, the limits to set so that a run does not exhaust the memory, and which
+operation (describe, search, language listing, replay) answers which question. Install it in the skills folder of your tool,
+in a folder named `gcrsim`:
+
+```
+# Claude Code, for one project (or ~/.claude/skills/gcrsim for every project)
+mkdir -p .claude/skills/gcrsim
+gcrsim --print-skill > .claude/skills/gcrsim/SKILL.md
+
+# Codex and other tools that read .agents/skills, for one project (or ~/.codex/skills/gcrsim for every project)
+mkdir -p .agents/skills/gcrsim
+gcrsim --print-skill > .agents/skills/gcrsim/SKILL.md
+```
+
+Other tools have their own skills folder. The skill links to the documentation of the latest
+release; see [docs/cli.md](docs/cli.md#using-gcrsim-with-ai-agents).
+
 ## How it is developed
 
 The development is AI-assisted, and the work is shared between the human author and the AI. The plan is discussed and validated by

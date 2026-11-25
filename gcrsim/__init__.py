@@ -18,6 +18,7 @@ from .output import Output, digest_contents, format_conf
 from ._replay import ReplayFailure, ReplayReport, ReplayStep, replay, replay_file
 from ._search import SearchResult, search
 from .rules import Rule
+from ._skill import skill_text
 from .settings import Settings, apply_settings, load_config, resolve_config
 
 __all__ = [
@@ -54,5 +55,6 @@ __all__ = [
     "measure",
     "Measures",
     "digest_contents",
+    "skill_text",
     "main",
 ]

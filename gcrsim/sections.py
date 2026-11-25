@@ -19,6 +19,30 @@ SECTIONS = {"symbols": SYMBOL_KEYS, "model": MODEL_KEYS, "run": RUN_KEYS}
 _INTERNAL = {"lexemes": "symbols"}  # the name used inside the program for the multi-character symbols
 
 
+FILTER_KEYS = ("forbid", "require", "max_count")
+
+
+def header_words(head: str, parts: "list[str]") -> "list[str]":
+    """The words after the first one of a section header, with the fixed words of the format in lower case
+    (``[SYMBOLS.CLASSES]`` is ``[symbols.classes]``). Names chosen by the user (classes, ranges, mark labels, the symbols of
+    ``max_count``) and component numbers keep their spelling. ``head`` is already in lower case."""
+    out: "list[str]" = []
+    path = [head]
+    for word in parts:
+        low = word.lower() if word[:1] not in "\"'" else word  # a quoted key is a name, never a fixed word
+        n = len(path)
+        fixed = ((n == 1 and low in SECTIONS.get(head, ()))
+                 or (n == 2 and path == ["model", "components"] and low == "all")
+                 or (n == 3 and path[:2] == ["model", "components"] and low in ("filters", "marks"))
+                 or (path == ["model", "filters"] and low in FILTER_KEYS)
+                 or (n == 4 and path[:2] == ["model", "components"] and path[3] == "filters" and low in FILTER_KEYS)
+                 or (n >= 3 and path[-1] == "max_count" and path[-2] == "filters" and low in ("class", "re")))
+        word = low if fixed else word
+        out.append(word)
+        path.append(word)
+    return out
+
+
 def section_of(key: str) -> str:
     """The section a setting belongs to, or ``""``."""
     for name, keys in SECTIONS.items():

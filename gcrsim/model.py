@@ -25,7 +25,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from .errors import ModelError
 from .pattern import _WS_RE
 from .lexicon import SEP, EMPTY, Lexicon, build_lexicon, comment_end
-from .sections import flatten
+from .sections import flatten, header_words
 from .rules import RegexRule, Rule, SendRule, SubRule
 from .ranges import (DEFAULT_MAX_EXPANDED, RangeFail, Ranges, Template, binding_text, check_declared, expand_each, expand_words,
                      expression_names, instances, parse_expression, read_ranges, size_of)
@@ -55,7 +55,10 @@ class Model:
         return len(self.axioms)
 
 
-_HEADER_RE = re.compile(r"\[[ \t]*([A-Za-z_][A-Za-z0-9_-]*)((?:[ \t]*\.[ \t]*[A-Za-z0-9_-]+)*)[ \t]*\][ \t]*(?:#.*)?")
+# a word of a header: bare, or a TOML quoted key (which may hold dots)
+_HEADER_WORD = r"""(?:[A-Za-z0-9_-]+|"(?:[^"\\]|\\.)*"|'[^']*')"""
+_HEADER_RE = re.compile(r"\[[ \t]*([A-Za-z_][A-Za-z0-9_-]*)((?:[ \t]*\.[ \t]*" + _HEADER_WORD + r")*)[ \t]*\][ \t]*(?:#.*)?")
+_HEADER_PART = re.compile(r"\.[ \t]*(" + _HEADER_WORD + r")")
 _CLASS_REF = re.compile(r"\{([A-Za-z_][A-Za-z0-9_]*)\}")
 _PREFIX_RE = re.compile(r"([0-9]*),")
 _CLAUSE_START = re.compile(r";(?=(?:permit-any|permit|forbid|name):)")
@@ -609,7 +612,7 @@ def parse_model(text: str, path: str = "<string>") -> Model:
         hm = _HEADER_RE.fullmatch(stripped)
         if hm is not None:
             head = hm.group(1).lower()
-            parts = [q.strip() for q in hm.group(2).split(".")[1:]]
+            parts = _HEADER_PART.findall(hm.group(2))
             if head == "rules":
                 if len(parts) > 1 or (parts and not parts[0].isdigit()):
                     raise ModelError("a rules section is [rules] or [rules.N] with the component number N", path, lineno)
@@ -624,7 +627,7 @@ def parse_model(text: str, path: str = "<string>") -> Model:
             in_rules = False
             if head == "axioms":
                 axioms_line = lineno
-            toml_lines.append("[" + head + hm.group(2) + "]")
+            toml_lines.append("[" + ".".join([head] + header_words(head, parts)) + "]")
             continue
         if not in_rules:
             toml_lines.append(raw)

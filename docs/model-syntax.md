@@ -6,7 +6,8 @@ This is the complete description of the model language. How a step works is desc
 
 A model is a TOML document in which the rules are lines. Its sections are `[symbols]` (how the text is read, see below), `[model]` and
 `[run]` (settings, see [configuration.md](configuration.md)), `[axioms]`, and `[rules]` and `[rules.N]` (the rules). The names are
-case-insensitive and the sections may come in any order. A line `[rules]` or `[rules.N]` opens a block of rule lines that ends at
+case-insensitive (`[SYMBOLS.CLASSES]` is `[symbols.classes]`), but the names you choose (classes, ranges, mark labels) keep
+their case, and the sections may come in any order. A line `[rules]` or `[rules.N]` opens a block of rule lines that ends at
 the next section header; everything else is read as TOML.
 
 ```
